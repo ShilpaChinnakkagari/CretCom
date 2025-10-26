@@ -118,6 +118,12 @@ document.getElementById('createDepartmentForm').addEventListener('submit', funct
         name: formData.get('name')
     };
     
+    // Show loading state
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '⏳ Creating...';
+    submitBtn.disabled = true;
+    
     fetch('/principal/create-department', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -126,14 +132,18 @@ document.getElementById('createDepartmentForm').addEventListener('submit', funct
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Department created successfully!');
+            alert('✅ Department created successfully!');
             location.reload();
         } else {
-            alert('Error: ' + data.message);
+            alert('❌ Error: ' + data.message);
         }
     })
     .catch(error => {
-        alert('Network error: ' + error);
+        alert('❌ Network error: ' + error);
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     });
 });
 
@@ -153,14 +163,14 @@ function assignHOD(hodId, departmentId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('HOD assigned successfully!');
+                alert('✅ HOD assigned successfully!');
                 location.reload();
             } else {
-                alert('Error: ' + data.message);
+                alert('❌ Error: ' + data.message);
             }
         })
         .catch(error => {
-            alert('Network error: ' + error);
+            alert('❌ Network error: ' + error);
         });
     }
 }

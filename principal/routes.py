@@ -190,9 +190,10 @@ def create_department():
     cursor = conn.cursor()
     
     try:
+        # Use only the columns that exist in your table
         cursor.execute(
-            "INSERT INTO departments (name, created_by) VALUES (%s, %s)",
-            (department_name, session['user_id'])
+            "INSERT INTO departments (name) VALUES (%s)",
+            (department_name,)
         )
         conn.commit()
         cursor.close()
