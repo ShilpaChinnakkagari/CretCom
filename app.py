@@ -3,6 +3,7 @@ from principal.routes import principal_bp
 from admin.routes import admin_bp
 from config import get_db_connection
 from hod.routes import hod_bp
+from hod.ao.routes import ao_bp 
 
 app = Flask(__name__)
 app.secret_key = 'cretcom-college-erp-2024'
@@ -10,6 +11,7 @@ app.secret_key = 'cretcom-college-erp-2024'
 app.register_blueprint(principal_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(hod_bp)
+app.register_blueprint(ao_bp)
 
 @app.route('/')
 def home():

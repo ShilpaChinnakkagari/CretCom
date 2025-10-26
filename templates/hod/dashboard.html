@@ -7,6 +7,7 @@
         <a href="/hod/dashboard">📊 Dashboard</a>
         <a href="/hod/faculty">👨‍🏫 Faculty</a>
         <a href="/hod/students">🎓 Students</a>
+        <a href="/hod/ao-management">👨‍💼 AO Management</a>  <!-- Add this line -->
         <a href="/logout">🚪 Logout</a>
     {% endif %}
 {% endblock %}
@@ -55,6 +56,12 @@
             <div style="padding: 20px; background: #27ae60; color: white; border-radius: 8px; text-align: center; cursor: pointer;">
                 <div style="font-size: 24px;">🎓</div>
                 <div style="font-weight: bold;">Manage Students</div>
+            </div>
+        </a>
+        <a href="/hod/ao-management" style="text-decoration: none;">
+            <div style="padding: 20px; background: #9b59b6; color: white; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 24px;">👨‍💼</div>
+                <div style="font-weight: bold;">Manage AO Staff</div>
             </div>
         </a>
     </div>

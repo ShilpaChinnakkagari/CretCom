@@ -1,0 +1,636 @@
+{% extends "base.html" %}
+
+{% block title %}AO Management - CretCom{% endblock %}
+
+{% block navigation %}
+    {% if session.user_role == 'hod' %}
+        <a href="/hod/dashboard">📊 Dashboard</a>
+        <a href="/hod/faculty">👨‍🏫 Faculty</a>
+        <a href="/hod/students">🎓 Students</a>
+        <a href="/hod/ao-management">👨‍💼 AO Management</a>
+        <a href="/logout">🚪 Logout</a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<h1>👨‍💼 Administrative Officers Management - {{ department }}</h1>
+
+<!-- ADD AO FORM -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">➕ Add New Administrative Officer</h3>
+    <form id="addAoForm">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            
+            <!-- BASIC INFORMATION -->
+            <div>
+                <label>Full Name *:</label>
+                <input type="text" name="name" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Enter full name">
+            </div>
+            <div>
+                <label>AO ID *:</label>
+                <input type="text" name="ao_id" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Auto-generated" readonly id="aoId">
+            </div>
+            
+            <!-- CONTACT DETAILS -->
+            <div>
+                <label>Email Address *:</label>
+                <input type="email" name="email" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="ao@college.edu">
+            </div>
+            <div>
+                <label>Phone Number *:</label>
+                <input type="text" name="phone" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="10-digit mobile number" pattern="[0-9]{10}">
+            </div>
+
+            <!-- PROFESSIONAL DETAILS -->
+            <div>
+                <label>Department *:</label>
+                <input type="text" name="department" value="{{ department }}" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" readonly>
+            </div>
+            <div>
+                <label>Work Location:</label>
+                <input type="text" name="work_location" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Block-Room Number">
+            </div>
+
+            <!-- SALARY & JOINING -->
+            <div>
+                <label>Monthly Salary (₹) *:</label>
+                <input type="number" name="salary" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="20000 - 60000" min="20000" max="100000">
+            </div>
+            <div>
+                <label>Date of Joining *:</label>
+                <input type="date" name="date_of_joining" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="aoDateOfJoining">
+            </div>
+
+            <!-- IDENTIFICATION -->
+            <div>
+                <label>Aadhar Number *:</label>
+                <input type="text" name="aadhar_number" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="12-digit Aadhar number" pattern="[0-9]{12}">
+            </div>
+            <div>
+                <label>Graduation/Domain *:</label>
+                <select name="graduation_domain" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">Select Qualification</option>
+                    <option value="MBA">MBA</option>
+                    <option value="M.Com">M.Com</option>
+                    <option value="B.Com">B.Com</option>
+                    <option value="BBA">BBA</option>
+                    <option value="M.Sc">M.Sc</option>
+                    <option value="B.Sc">B.Sc</option>
+                    <option value="Post Graduation">Post Graduation</option>
+                    <option value="Graduation">Graduation</option>
+                    <option value="Diploma">Diploma</option>
+                </select>
+            </div>
+
+            <!-- PERSONAL DETAILS -->
+            <div>
+                <label>Caste:</label>
+                <input type="text" name="caste" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Caste">
+            </div>
+            <div>
+                <label>Address:</label>
+                <textarea name="address" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; height: 80px;" placeholder="Complete address"></textarea>
+            </div>
+        </div>
+
+        <button type="submit" style="margin-top: 15px; padding: 12px 30px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+            🚀 Create AO Account
+        </button>
+    </form>
+</div>
+
+<!-- TASK ASSIGNMENT SECTION -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3 style="color: #2c3e50; border-bottom: 2px solid #e67e22; padding-bottom: 10px;">📋 Assign Tasks to AO Staff</h3>
+    
+    <!-- Task Assignment Form -->
+    <div style="background: #fffbf0; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #e67e22;">
+        <h4 style="color: #2c3e50; margin-bottom: 15px;">➕ Assign New Task</h4>
+        <form id="assignTaskForm">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label>Select AO Staff *:</label>
+                    <select name="ao_id" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="aoSelect">
+                        <option value="">Select AO Staff</option>
+                        {% for ao in ao_staff %}
+                            {% if ao.status == 'active' %}
+                                <option value="{{ ao.ao_id }}">{{ ao.name }} ({{ ao.ao_id }})</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Task Subject *:</label>
+                    <input type="text" name="subject" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Enter task subject">
+                </div>
+                <div style="grid-column: span 2;">
+                    <label>Task Description *:</label>
+                    <textarea name="task_description" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; height: 100px;" placeholder="Describe the task in detail..."></textarea>
+                </div>
+                <div>
+                    <label>Priority:</label>
+                    <select name="priority" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <option value="low">🟢 Low</option>
+                        <option value="medium" selected>🟡 Medium</option>
+                        <option value="high">🟠 High</option>
+                        <option value="urgent">🔴 Urgent</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Deadline:</label>
+                    <input type="date" name="deadline" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+            </div>
+
+            <button type="submit" style="margin-top: 15px; padding: 12px 30px; background: #e67e22; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                📤 Assign Task
+            </button>
+        </form>
+    </div>
+
+    <!-- Assigned Tasks List -->
+    <div style="margin-top: 20px;">
+        <h4 style="color: #2c3e50; margin-bottom: 15px;">📝 Assigned Tasks</h4>
+        {% if assigned_tasks %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #34495e; color: white;">
+                        <th style="padding: 12px; text-align: left;">Task ID</th>
+                        <th style="padding: 12px; text-align: left;">AO Staff</th>
+                        <th style="padding: 12px; text-align: left;">Subject</th>
+                        <th style="padding: 12px; text-align: left;">Priority</th>
+                        <th style="padding: 12px; text-align: left;">Status</th>
+                        <th style="padding: 12px; text-align: left;">Deadline</th>
+                        <th style="padding: 12px; text-align: left;">Assigned Date</th>
+                        <th style="padding: 12px; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in assigned_tasks %}
+                    <tr style="border-bottom: 1px solid #ecf0f1;">
+                        <td style="padding: 12px;"><strong>{{ task.task_id }}</strong></td>
+                        <td style="padding: 12px;">{{ task.ao_name }}</td>
+                        <td style="padding: 12px;">{{ task.subject }}</td>
+                        <td style="padding: 12px;">{{ task.priority_display }}</td>
+                        <td style="padding: 12px;">{{ task.status_display }}</td>
+                        <td style="padding: 12px;">{{ task.deadline.strftime('%Y-%m-%d') if task.deadline else 'No deadline' }}</td>
+                        <td style="padding: 12px;">{{ task.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td style="padding: 12px; text-align: center;">
+                            <button onclick="viewTaskDetails('{{ task.task_id }}')" 
+                                    style="padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                                👁️ View
+                            </button>
+                            <button onclick="deleteTask('{{ task.task_id }}')" 
+                                    style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                                🗑️ Delete
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+            <div style="font-size: 48px; margin-bottom: 20px;">📝</div>
+            <h4 style="color: #95a5a6;">No Tasks Assigned</h4>
+            <p>Assign your first task using the form above.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- EXISTING AO STAFF LIST -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin-top: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3>👨‍💼 Administrative Officers ({{ ao_staff|length }} staff)</h3>
+    
+    {% if ao_staff %}
+    <div style="overflow-x: auto; margin-top: 20px;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #34495e; color: white;">
+                    <th style="padding: 12px; text-align: left;">AO ID</th>
+                    <th style="padding: 12px; text-align: left;">Name</th>
+                    <th style="padding: 12px; text-align: left;">Email</th>
+                    <th style="padding: 12px; text-align: left;">Phone</th>
+                    <th style="padding: 12px; text-align: center;">Status</th>
+                    <th style="padding: 12px; text-align: left;">Joined Date</th>
+                    <th style="padding: 12px; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ao in ao_staff %}
+                <tr style="border-bottom: 1px solid #ecf0f1;">
+                    <td style="padding: 12px;"><strong>{{ ao.ao_id }}</strong></td>
+                    <td style="padding: 12px;">{{ ao.name }}</td>
+                    <td style="padding: 12px;">{{ ao.email }}</td>
+                    <td style="padding: 12px;">{{ ao.phone or 'N/A' }}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="background: {% if ao.status == 'active' %}#27ae60{% else %}#e74c3c{% endif %}; 
+                                  color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
+                            {{ ao.status|title }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">{{ ao.date_of_joining.strftime('%Y-%m-%d') if ao.date_of_joining else 'N/A' }}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <button onclick="viewAoDetails('{{ ao.ao_id }}')" 
+                                style="padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                            👁️ View
+                        </button>
+                        <button onclick="editAoDetails('{{ ao.ao_id }}')" 
+                                style="padding: 6px 12px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                            ✏️ Edit
+                        </button>
+                        {% if ao.status == 'active' %}
+                        <button onclick="updateAoStatus('{{ ao.ao_id }}', 'inactive')" 
+                                style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                            Deactivate
+                        </button>
+                        {% else %}
+                        <button onclick="updateAoStatus('{{ ao.ao_id }}', 'active')" 
+                                style="padding: 6px 12px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                            Activate
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+        <div style="font-size: 48px; margin-bottom: 20px;">👨‍💼</div>
+        <h4 style="color: #95a5a6;">No Administrative Officers</h4>
+        <p>Start by adding your first AO staff using the form above.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Task Details Modal -->
+<div id="taskModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+        <h3>📝 Task Details</h3>
+        <div id="taskDetailsContainer">
+            <!-- Task details will be loaded here -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="closeTaskModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Existing AO Modals (keep your existing AO modals) -->
+<div id="aoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <!-- ... your existing AO modal code ... -->
+</div>
+
+<div id="editAoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <!-- ... your existing Edit AO modal code ... -->
+</div>
+
+<script>
+// Set today's date as default for date of joining
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('aoDateOfJoining').value = today;
+    generateAoID();
+});
+
+// Generate AO ID when name is entered
+document.querySelector('input[name="name"]').addEventListener('input', generateAoID);
+
+function generateAoID() {
+    const name = document.querySelector('input[name="name"]').value;
+    const department = '{{ department }}';
+    
+    if (name && department) {
+        const initials = name.split(' ').map(word => word[0].toUpperCase()).join('');
+        const deptCode = department.split(' ').map(word => word[0].toUpperCase()).join('').substring(0, 2);
+        const timestamp = new Date().getTime().toString().slice(-4);
+        const aoID = `AO${deptCode}${initials}${timestamp}`;
+        
+        document.getElementById('aoId').value = aoID;
+    }
+}
+
+// Add AO Form Submission
+document.getElementById('addAoForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const aoData = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        department: formData.get('department'),
+        salary: parseFloat(formData.get('salary')),
+        date_of_joining: formData.get('date_of_joining'),
+        work_location: formData.get('work_location'),
+        aadhar_number: formData.get('aadhar_number'),
+        graduation_domain: formData.get('graduation_domain'),
+        caste: formData.get('caste'),
+        address: formData.get('address')
+    };
+    
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '⏳ Creating AO...';
+    submitBtn.disabled = true;
+    
+    fetch('/hod/add-ao', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(aoData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ Administrative Officer created successfully!\n\nAO ID: ${data.ao_id}\nUsername: ${data.ao_id.toLowerCase()}\nPassword: ao123456`);
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Task Assignment Form Submission
+document.getElementById('assignTaskForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const taskData = {
+        ao_id: formData.get('ao_id'),
+        subject: formData.get('subject'),
+        task_description: formData.get('task_description'),
+        priority: formData.get('priority'),
+        deadline: formData.get('deadline') || null
+    };
+    
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '⏳ Assigning Task...';
+    submitBtn.disabled = true;
+    
+    fetch('/hod/assign-task', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(taskData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Task assigned successfully!');
+            this.reset();
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// View Task Details
+function viewTaskDetails(taskId) {
+    fetch('/hod/get-task-details/' + taskId)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const task = data.task;
+            
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                return new Date(dateString).toLocaleDateString('en-IN');
+            };
+
+            const detailsHTML = `
+                <div style="max-height: 60vh; overflow-y: auto; padding: 10px;">
+                    <!-- Task Information -->
+                    <div style="background: #e8f4fd; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📝 Task Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Task ID:</strong><br>${task.task_id}</div>
+                            <div><strong>Assigned To:</strong><br>${task.ao_name} (${task.ao_id})</div>
+                            <div><strong>Subject:</strong><br>${task.subject}</div>
+                            <div><strong>Priority:</strong><br>${task.priority_display}</div>
+                            <div><strong>Status:</strong><br>${task.status_display}</div>
+                            <div><strong>Deadline:</strong><br>${formatDate(task.deadline)}</div>
+                        </div>
+                    </div>
+
+                    <!-- Task Description -->
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📄 Task Description</h4>
+                        <p style="white-space: pre-wrap;">${task.task_description}</p>
+                    </div>
+
+                    <!-- Task Progress -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📊 Task Progress</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Assigned Date:</strong><br>${formatDate(task.created_at)}</div>
+                            <div><strong>Last Updated:</strong><br>${formatDate(task.updated_at)}</div>
+                            ${task.remarks ? `<div style="grid-column: span 2;"><strong>Remarks:</strong><br>${task.remarks}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('taskDetailsContainer').innerHTML = detailsHTML;
+            document.getElementById('taskModal').style.display = 'flex';
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+}
+
+// Delete Task
+function deleteTask(taskId) {
+    if (confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+        fetch('/hod/delete-task/' + taskId, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Task deleted successfully!');
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('❌ Network error: ' + error);
+        });
+    }
+}
+
+function closeTaskModal() {
+    document.getElementById('taskModal').style.display = 'none';
+}
+
+// Your existing AO functions (viewAoDetails, editAoDetails, etc.) remain the same
+let currentEditAoId = null;
+
+function viewAoDetails(aoId) {
+    fetch('/hod/get-ao-details/' + aoId)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const ao = data.ao_staff;
+            
+            // Format date for display
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                return new Date(dateString).toLocaleDateString('en-IN');
+            };
+
+            const detailsHTML = `
+                <div style="max-height: 60vh; overflow-y: auto; padding: 10px;">
+                    <!-- Basic Information -->
+                    <div style="background: #e8f4fd; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">👤 Basic Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>AO ID:</strong><br>${ao.ao_id}</div>
+                            <div><strong>Full Name:</strong><br>${ao.name}</div>
+                            <div><strong>Email:</strong><br>${ao.email}</div>
+                            <div><strong>Phone:</strong><br>${ao.phone || 'N/A'}</div>
+                            <div><strong>Department:</strong><br>${ao.department}</div>
+                        </div>
+                    </div>
+
+                    <!-- Professional Information -->
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">💼 Professional Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Status:</strong><br><span style="color: ${ao.status === 'active' ? '#27ae60' : '#e74c3c'}">${ao.status.toUpperCase()}</span></div>
+                            <div><strong>Date of Joining:</strong><br>${formatDate(ao.date_of_joining)}</div>
+                            <div><strong>Salary:</strong><br>₹${ao.salary}</div>
+                            <div><strong>Work Location:</strong><br>${ao.work_location || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Qualifications & Identification -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">🎓 Qualifications & Identification</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Graduation Domain:</strong><br>${ao.graduation_domain}</div>
+                            <div><strong>Aadhar Number:</strong><br>${ao.aadhar_number}</div>
+                            <div><strong>Caste:</strong><br>${ao.caste || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Address Information -->
+                    <div style="background: #e8f6f3; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📍 Address Information</h4>
+                        <div>
+                            <strong>Address:</strong><br>${ao.address || 'N/A'}
+                        </div>
+                    </div>
+
+                    <!-- System Information -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📅 System Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Created At:</strong><br>${formatDate(ao.created_at)}</div>
+                            <div><strong>Created By:</strong><br>${ao.created_by || 'System'}</div>
+                            ${ao.updated_at ? `<div><strong>Last Updated:</strong><br>${formatDate(ao.updated_at)}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('aoDetailsContainer').innerHTML = detailsHTML;
+            document.getElementById('aoModal').style.display = 'flex';
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+}
+
+function editAoDetails(aoId) {
+    currentEditAoId = aoId;
+    
+    fetch('/hod/get-ao-details/' + aoId)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const ao = data.ao_staff;
+            
+            const editForm = `
+                <form id="editAoForm">
+                    <div style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
+                        
+                        <!-- Personal Information -->
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h4 style="color: #34495e; margin-bottom: 15px;">👤 Personal Information</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label>Full Name *:</label>
+                                    <input type="text" name="name" value="${ao.name}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>Email *:</label>
+                                    <input type="email" name="email" value="${ao.email}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>Phone *:</label>
+                                    <input type="text" name="phone" value="${ao.phone || ''}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Professional Information -->
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h4 style="color: #34495e; margin-bottom: 15px;">💼 Professional Information</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label>Salary (₹) *:</label>
+                                    <input type="number" name="salary" value="${ao.salary}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>Date of Joining *:</label>
+                                    <input type="date" name="date_of_joining" value="${ao.date_of_joining}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>Work Location:</label>
+                                    <input type="text" name="work_location" value="${ao.work_location || ''}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Qualifications & Identification -->
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h4 style="color: #34495e; margin-bottom: 15px;">🎓 Qualifications & Identification</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label>Aadhar Number *:</label>
+                                    <input type="text" name="aadhar_number" value="${ao.aadhar_number}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>Graduation Domain *:</label>
+                                    <select name="graduation_domain"
