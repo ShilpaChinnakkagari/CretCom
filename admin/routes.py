@@ -41,8 +41,56 @@ def admin_dashboard():
     return render_template('admin/dashboard.html', stats=stats)
 
 # ===== STUDENT MANAGEMENT =====
+# ===== STUDENT MANAGEMENT =====
 @admin_bp.route('/student-management')
 def admin_student_management():
+    if session.get('user_role') not in ['administration_admin', 'college_admin']:
+        flash('Access denied', 'error')
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get all students from students table
+    cursor.execute("""
+        SELECT student_id, name, email, department, phone, 
+               date_of_birth, gender, blood_group, caste,
+               father_name, father_phone, mother_name, mother_phone,
+               guardian_name, guardian_phone, admission_date, academic_year,
+               admission_quota, status, created_at
+        FROM students 
+        ORDER BY created_at DESC
+    """)
+    students = cursor.fetchall()
+    
+    # Get departments for dropdown
+    cursor.execute("SELECT name FROM departments")
+    departments = cursor.fetchall()
+    
+    # Get unique academic years for dropdown
+    cursor.execute("SELECT DISTINCT academic_year FROM students ORDER BY academic_year DESC")
+    academic_years = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    # Add empty current_filters to avoid template error
+    current_filters = {
+        'department': '',
+        'academic_year': '',
+        'quota': '',
+        'status': 'active'
+    }
+    
+    return render_template('admin/administration/student_management.html', 
+                         students=students, 
+                         departments=departments,
+                         academic_years=academic_years,
+                         current_filters=current_filters)
+
+# ===== STUDENT FILTERS =====
+@admin_bp.route('/student-filters')
+def admin_student_filters():
     if session.get('user_role') not in ['administration_admin', 'college_admin']:
         flash('Access denied', 'error')
         return redirect('/login')
@@ -100,7 +148,7 @@ def admin_student_management():
     cursor.close()
     conn.close()
     
-    return render_template('admin/administration/student_management.html', 
+    return render_template('admin/administration/student_filters.html', 
                          students=students, 
                          departments=departments,
                          academic_years=academic_years,
@@ -355,3 +403,46 @@ def admin_export_students():
             'status': status_filter
         }
     })
+
+# ===== ADMIN PASSWORD CHANGE =====
+@admin_bp.route('/change-password', methods=['GET', 'POST'])
+def admin_change_password():
+    if session.get('user_role') not in ALLOWED_ADMIN_ROLES:
+        flash('Access denied', 'error')
+        return redirect('/login')
+    
+    if request.method == 'POST':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if new_password != confirm_password:
+            flash('New passwords do not match', 'error')
+            return render_template('admin/administration/admin_change_password.html')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verify current password
+        cursor.execute("SELECT password FROM users WHERE username = %s", (session['user_id'],))
+        user = cursor.fetchone()
+        
+        if not user or user['password'] != current_password:
+            flash('Current password is incorrect', 'error')
+            cursor.close()
+            conn.close()
+            return render_template('admin/administration/admin_change_password.html')
+        
+        # Update password
+        cursor.execute(
+            "UPDATE users SET password = %s WHERE username = %s",
+            (new_password, session['user_id'])
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        flash('Password changed successfully!', 'success')
+        return redirect('/admin/dashboard')
+    
+    return render_template('admin/administration/admin_change_password.html')

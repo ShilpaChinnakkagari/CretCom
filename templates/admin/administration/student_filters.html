@@ -1,0 +1,592 @@
+{% extends "base.html" %}
+
+{% block title %}Student Filters - CretCom{% endblock %}
+
+{% block navigation %}
+    <a href="/admin/dashboard">📊 Dashboard</a>
+    <a href="/admin/student-management">🎓 Student Management</a>
+    <a href="/admin/student-filters">🔍 Student Filters</a>
+    <a href="/admin/change-password">🔐 Change Password</a>
+    <a href="/logout">🚪 Logout</a>
+{% endblock %}
+
+{% block content %}
+<h1>Student Filters</h1>
+<p>Welcome, {{ session.user_name }}! Filter and search students with advanced criteria</p>
+
+<!-- FILTER SECTION -->
+<div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">🔍 Filter Students</h3>
+    <form id="filterForm" method="GET" action="/admin/student-filters">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 15px; align-items: end;">
+            <div>
+                <label>Department:</label>
+                <select name="department" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.name }}" {% if current_filters.department == dept.name %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Academic Year:</label>
+                <select name="academic_year" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">All Years</option>
+                    {% for year in academic_years %}
+                    <option value="{{ year.academic_year }}" {% if current_filters.academic_year == year.academic_year %}selected{% endif %}>{{ year.academic_year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Admission Quota:</label>
+                <select name="quota" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">All Quotas</option>
+                    <option value="Management" {% if current_filters.quota == 'Management' %}selected{% endif %}>Management</option>
+                    <option value="Convenor" {% if current_filters.quota == 'Convenor' %}selected{% endif %}>Convenor</option>
+                    <option value="NRI" {% if current_filters.quota == 'NRI' %}selected{% endif %}>NRI</option>
+                    <option value="Other" {% if current_filters.quota == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div>
+                <label>Status:</label>
+                <select name="status" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                    <option value="">All Status</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%;">
+                    🔍 Apply Filters
+                </button>
+                {% if current_filters.department or current_filters.academic_year or current_filters.quota %}
+                <a href="/admin/student-filters" style="display: block; text-align: center; margin-top: 5px; color: #e74c3c; text-decoration: none; font-size: 12px;">
+                    🗑️ Clear Filters
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- FILTERED STUDENTS LIST -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin-top: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);" id="student-list">
+    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: #2c3e50; margin: 0;">📋 Filtered Students ({{ students|length }})</h3>
+        <div>
+            <button onclick="exportStudents()" style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                📥 Export Data
+            </button>
+        </div>
+    </div>
+    
+    {% if students %}
+    <div style="overflow-x: auto; margin-top: 20px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #34495e, #2c3e50); color: white;">
+                    <th style="padding: 15px; text-align: left; border: none;">Student ID</th>
+                    <th style="padding: 15px; text-align: left; border: none;">Name</th>
+                    <th style="padding: 15px; text-align: left; border: none;">Department</th>
+                    <th style="padding: 15px; text-align: left; border: none;">Contact</th>
+                    <th style="padding: 15px; text-align: left; border: none;">Quota</th>
+                    <th style="padding: 15px; text-align: center; border: none;">Status</th>
+                    <th style="padding: 15px; text-align: center; border: none;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr style="border-bottom: 1px solid #ecf0f1; transition: background 0.3s;">
+                    <td style="padding: 15px;">
+                        <strong style="color: #2c3e50;">{{ student.student_id }}</strong>
+                    </td>
+                    <td style="padding: 15px;">
+                        <div style="font-weight: bold; color: #34495e;">{{ student.name }}</div>
+                        <div style="font-size: 12px; color: #7f8c8d;">{{ student.gender }} | {{ student.blood_group }}</div>
+                    </td>
+                    <td style="padding: 15px;">
+                        <span style="background: #e8f4fd; color: #3498db; padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: bold;">
+                            {{ student.department }}
+                        </span>
+                        <div style="font-size: 11px; color: #7f8c8d; margin-top: 5px;">{{ student.academic_year }}</div>
+                    </td>
+                    <td style="padding: 15px;">
+                        <div style="font-size: 13px; color: #2c3e50;">📧 {{ student.email }}</div>
+                        <div style="font-size: 13px; color: #7f8c8d;">📱 {{ student.phone }}</div>
+                    </td>
+                    <td style="padding: 15px;">
+                        <span style="background: #fff3cd; color: #856404; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold;">
+                            {{ student.admission_quota }}
+                        </span>
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        <span style="color: {% if student.status == 'active' %}#27ae60{% else %}#e74c3c{% endif %}; font-weight: bold; padding: 6px 12px; border-radius: 15px; background: {% if student.status == 'active' %}#d5f4e6{% else %}#fde8e8{% endif %};">
+                            {{ student.status|title }}
+                        </span>
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        <button onclick="viewStudentDetails('{{ student.student_id }}')" style="padding: 8px 12px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 2px; font-size: 12px;">
+                            👁️ View Details
+                        </button>
+                        <button onclick="editStudent('{{ student.student_id }}')" style="padding: 8px 12px; background: #f39c12; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 2px; font-size: 12px;">
+                            ✏️ Edit
+                        </button>
+                        {% if student.status == 'active' %}
+                        <button onclick="deactivateStudent('{{ student.student_id }}')" style="padding: 8px 12px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 2px; font-size: 12px;">
+                            🗑️ Deactivate
+                        </button>
+                        {% else %}
+                        <button onclick="activateStudent('{{ student.student_id }}')" style="padding: 8px 12px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 2px; font-size: 12px;">
+                            ✅ Activate
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+        <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
+        <h4 style="color: #95a5a6;">No Students Found</h4>
+        <p>No students match your current filters. Try adjusting your search criteria.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- VIEW STUDENT DETAILS MODAL -->
+<div id="viewModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <h3>👤 Student Details</h3>
+        <div id="studentDetailsContainer">
+            <!-- Student details will be loaded here -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="closeViewModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT STUDENT MODAL -->
+<div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <h3>✏️ Edit Student</h3>
+        <div id="editFormContainer">
+            <!-- Edit form will be loaded here -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="closeEditModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">
+                Cancel
+            </button>
+            <button onclick="saveStudentChanges()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentEditStudentId = null;
+
+function viewStudentDetails(studentId) {
+    fetch('/admin/get-student-record/' + studentId)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const student = data.student;
+            
+            // Format date for display
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                return new Date(dateString).toLocaleDateString('en-IN');
+            };
+
+            const detailsHTML = `
+                <div style="max-height: 70vh; overflow-y: auto; padding: 10px;">
+                    <!-- Student Basic Information -->
+                    <div style="background: #e8f4fd; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #3498db;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">🎓 Student Basic Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                            <div><strong>Student ID:</strong><br>${student.student_id}</div>
+                            <div><strong>Full Name:</strong><br>${student.name}</div>
+                            <div><strong>Email:</strong><br>${student.email}</div>
+                            <div><strong>Phone:</strong><br>${student.phone}</div>
+                            <div><strong>Date of Birth:</strong><br>${formatDate(student.date_of_birth)}</div>
+                            <div><strong>Gender:</strong><br>${student.gender}</div>
+                            <div><strong>Blood Group:</strong><br>${student.blood_group}</div>
+                            <div><strong>Caste:</strong><br>${student.caste}</div>
+                            <div><strong>Status:</strong><br><span style="color: ${student.status === 'active' ? '#27ae60' : '#e74c3c'}; font-weight: bold;">${student.status.toUpperCase()}</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Academic Information -->
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f39c12;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📚 Academic Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Department:</strong><br>${student.department}</div>
+                            <div><strong>Admission Date:</strong><br>${formatDate(student.admission_date)}</div>
+                            <div><strong>Academic Year:</strong><br>${student.academic_year}</div>
+                            <div><strong>Admission Quota:</strong><br>${student.admission_quota}</div>
+                            <div><strong>Created By:</strong><br>${student.created_by || 'System'}</div>
+                            <div><strong>Created At:</strong><br>${formatDate(student.created_at)}</div>
+                            ${student.updated_at ? `<div><strong>Last Updated:</strong><br>${formatDate(student.updated_at)}</div>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Family Information -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #27ae60;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">👨‍👩‍👧‍👦 Family Information</h4>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <h5 style="color: #34495e; margin-bottom: 8px;">👨 Father's Details</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                                <div><strong>Name:</strong><br>${student.father_name}</div>
+                                <div><strong>Phone:</strong><br>${student.father_phone}</div>
+                                <div><strong>Occupation:</strong><br>${student.father_occupation || 'N/A'}</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 15px;">
+                            <h5 style="color: #34495e; margin-bottom: 8px;">👩 Mother's Details</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                                <div><strong>Name:</strong><br>${student.mother_name}</div>
+                                <div><strong>Phone:</strong><br>${student.mother_phone}</div>
+                                <div><strong>Occupation:</strong><br>${student.mother_occupation || 'N/A'}</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h5 style="color: #34495e; margin-bottom: 8px;">🏠 Guardian Details</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                                <div><strong>Name:</strong><br>${student.guardian_name}</div>
+                                <div><strong>Phone:</strong><br>${student.guardian_phone}</div>
+                                <div><strong>Relation:</strong><br>${student.guardian_relation}</div>
+                            </div>
+                            ${student.guardian_address ? `
+                            <div style="margin-top: 10px;">
+                                <strong>Guardian Address:</strong><br>${student.guardian_address}
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Address Information -->
+                    <div style="background: #e8f6f3; padding: 20px; border-radius: 10px; border-left: 4px solid #1abc9c;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📍 Address Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                            <div><strong>Address:</strong><br>${student.address}</div>
+                            <div><strong>City:</strong><br>${student.city}</div>
+                            <div><strong>State:</strong><br>${student.state}</div>
+                            <div><strong>Pincode:</strong><br>${student.pincode}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('studentDetailsContainer').innerHTML = detailsHTML;
+            document.getElementById('viewModal').style.display = 'flex';
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    });
+}
+
+function closeViewModal() {
+    document.getElementById('viewModal').style.display = 'none';
+}
+
+function editStudent(studentId) {
+    currentEditStudentId = studentId;
+    
+    fetch('/admin/get-student-record/' + studentId)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const student = data.student;
+            
+            // Create comprehensive edit form with ALL fields
+            const editForm = `
+                <form id="editStudentForm">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-height: 60vh; overflow-y: auto;">
+                        
+                        <!-- Personal Information -->
+                        <div style="grid-column: span 2; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            <h4 style="color: #34495e; margin-bottom: 15px;">👤 Personal Information</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label>Full Name *:</label>
+                                    <input type="text" name="name" value="${student.name}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Email *:</label>
+                                    <input type="email" name="email" value="${student.email}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Phone *:</label>
+                                    <input type="text" name="phone" value="${student.phone}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Date of Birth *:</label>
+                                    <input type="date" name="date_of_birth" value="${student.date_of_birth}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Gender *:</label>
+                                    <select name="gender" required style="width: 100%; padding: 8px;">
+                                        <option value="Male" ${student.gender === 'Male' ? 'selected' : ''}>Male</option>
+                                        <option value="Female" ${student.gender === 'Female' ? 'selected' : ''}>Female</option>
+                                        <option value="Other" ${student.gender === 'Other' ? 'selected' : ''}>Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label>Blood Group *:</label>
+                                    <select name="blood_group" required style="width: 100%; padding: 8px;">
+                                        <option value="">Select Blood Group</option>
+                                        <option value="A+" ${student.blood_group === 'A+' ? 'selected' : ''}>A+</option>
+                                        <option value="A-" ${student.blood_group === 'A-' ? 'selected' : ''}>A-</option>
+                                        <option value="B+" ${student.blood_group === 'B+' ? 'selected' : ''}>B+</option>
+                                        <option value="B-" ${student.blood_group === 'B-' ? 'selected' : ''}>B-</option>
+                                        <option value="AB+" ${student.blood_group === 'AB+' ? 'selected' : ''}>AB+</option>
+                                        <option value="AB-" ${student.blood_group === 'AB-' ? 'selected' : ''}>AB-</option>
+                                        <option value="O+" ${student.blood_group === 'O+' ? 'selected' : ''}>O+</option>
+                                        <option value="O-" ${student.blood_group === 'O-' ? 'selected' : ''}>O-</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label>Caste *:</label>
+                                    <input type="text" name="caste" value="${student.caste}" required style="width: 100%; padding: 8px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Academic Information -->
+                        <div style="grid-column: span 2; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            <h4 style="color: #34495e; margin-bottom: 15px;">🎓 Academic Information</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label>Department *:</label>
+                                    <select name="department" required style="width: 100%; padding: 8px;">
+                                        <option value="">Select Department</option>
+                                        {% for dept in departments %}
+                                        <option value="{{ dept.name }}" ${student.department === '{{ dept.name }}' ? 'selected' : ''}>{{ dept.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label>Admission Date *:</label>
+                                    <input type="date" name="admission_date" value="${student.admission_date}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Academic Year *:</label>
+                                    <select name="academic_year" required style="width: 100%; padding: 8px;">
+                                        <option value="">Select Year</option>
+                                        <option value="2024-2025" ${student.academic_year === '2024-2025' ? 'selected' : ''}>2024-2025</option>
+                                        <option value="2023-2024" ${student.academic_year === '2023-2024' ? 'selected' : ''}>2023-2024</option>
+                                        <option value="2022-2023" ${student.academic_year === '2022-2023' ? 'selected' : ''}>2022-2023</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label>Admission Quota *:</label>
+                                    <select name="admission_quota" required style="width: 100%; padding: 8px;">
+                                        <option value="">Select Quota</option>
+                                        <option value="Management" ${student.admission_quota === 'Management' ? 'selected' : ''}>Management</option>
+                                        <option value="Convenor" ${student.admission_quota === 'Convenor' ? 'selected' : ''}>Convenor</option>
+                                        <option value="NRI" ${student.admission_quota === 'NRI' ? 'selected' : ''}>NRI</option>
+                                        <option value="Other" ${student.admission_quota === 'Other' ? 'selected' : ''}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Father's Information -->
+                        <div style="grid-column: span 2; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            <h4 style="color: #34495e; margin-bottom: 15px;">👨 Father's Information</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label>Father's Name *:</label>
+                                    <input type="text" name="father_name" value="${student.father_name}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Father's Phone *:</label>
+                                    <input type="text" name="father_phone" value="${student.father_phone}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Father's Occupation:</label>
+                                    <input type="text" name="father_occupation" value="${student.father_occupation || ''}" style="width: 100%; padding: 8px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mother's Information -->
+                        <div style="grid-column: span 2; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            <h4 style="color: #34495e; margin-bottom: 15px;">👩 Mother's Information</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label>Mother's Name *:</label>
+                                    <input type="text" name="mother_name" value="${student.mother_name}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Mother's Phone *:</label>
+                                    <input type="text" name="mother_phone" value="${student.mother_phone}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Mother's Occupation:</label>
+                                    <input type="text" name="mother_occupation" value="${student.mother_occupation || ''}" style="width: 100%; padding: 8px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Guardian Information -->
+                        <div style="grid-column: span 2; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            <h4 style="color: #34495e; margin-bottom: 15px;">🏠 Guardian Information</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label>Guardian Name *:</label>
+                                    <input type="text" name="guardian_name" value="${student.guardian_name}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Guardian Phone *:</label>
+                                    <input type="text" name="guardian_phone" value="${student.guardian_phone}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Guardian Relation *:</label>
+                                    <input type="text" name="guardian_relation" value="${student.guardian_relation}" required style="width: 100%; padding: 8px;">
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <label>Guardian Address:</label>
+                                <textarea name="guardian_address" style="width: 100%; padding: 8px; height: 60px;">${student.guardian_address || ''}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Address Information -->
+                        <div style="grid-column: span 2; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            <h4 style="color: #34495e; margin-bottom: 15px;">📍 Address Information</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label>City *:</label>
+                                    <input type="text" name="city" value="${student.city}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>State *:</label>
+                                    <input type="text" name="state" value="${student.state}" required style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label>Pincode *:</label>
+                                    <input type="text" name="pincode" value="${student.pincode}" required style="width: 100%; padding: 8px;">
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <label>Complete Address *:</label>
+                                <textarea name="address" required style="width: 100%; padding: 8px; height: 80px;">${student.address}</textarea>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            `;
+            
+            document.getElementById('editFormContainer').innerHTML = editForm;
+            document.getElementById('editModal').style.display = 'flex';
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    });
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+    currentEditStudentId = null;
+}
+
+function saveStudentChanges() {
+    const formData = new FormData(document.getElementById('editStudentForm'));
+    const studentData = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        department: formData.get('department'),
+        phone: formData.get('phone'),
+        date_of_birth: formData.get('date_of_birth'),
+        gender: formData.get('gender'),
+        blood_group: formData.get('blood_group'),
+        caste: formData.get('caste'),
+        father_name: formData.get('father_name'),
+        father_phone: formData.get('father_phone'),
+        father_occupation: formData.get('father_occupation'),
+        mother_name: formData.get('mother_name'),
+        mother_phone: formData.get('mother_phone'),
+        mother_occupation: formData.get('mother_occupation'),
+        guardian_name: formData.get('guardian_name'),
+        guardian_phone: formData.get('guardian_phone'),
+        guardian_relation: formData.get('guardian_relation'),
+        guardian_address: formData.get('guardian_address'),
+        address: formData.get('address'),
+        city: formData.get('city'),
+        state: formData.get('state'),
+        pincode: formData.get('pincode'),
+        admission_date: formData.get('admission_date'),
+        academic_year: formData.get('academic_year'),
+        admission_quota: formData.get('admission_quota')
+    };
+    
+    fetch('/admin/update-student-record/' + currentEditStudentId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(studentData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Student updated successfully!');
+            closeEditModal();
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    });
+}
+
+function deactivateStudent(studentId) {
+    if (confirm(`Are you sure you want to deactivate student ${studentId}?\n\nThis action can be reversed later.`)) {
+        fetch('/admin/delete-student-record/' + studentId, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Student deactivated successfully!');
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.message);
+            }
+        });
+    }
+}
+
+function activateStudent(studentId) {
+    if (confirm(`Are you sure you want to activate student ${studentId}?`)) {
+        fetch('/admin/activate-student-record/' + studentId, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Student activated successfully!');
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.message);
+            }
+        });
+    }
+}
+
+function exportStudents() {
+    const params = new URLSearchParams(window.location.search);
+    window.open('/admin/export-students?' + params.toString(), '_blank');
+}
+</script>
+{% endblock %}
