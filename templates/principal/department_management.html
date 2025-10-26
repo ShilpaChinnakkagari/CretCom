@@ -38,15 +38,15 @@
         <div style="color: #7f8c8d; margin-bottom: 20px;">Total Departments</div>
         
         <div style="display: grid; gap: 10px;">
-            <div style="display: flex; justify-content: between;">
+            <div style="display: flex; justify-content: space-between;">
                 <span>Departments with HOD:</span>
                 <strong>{{ departments|selectattr('hod_id')|list|length }}</strong>
             </div>
-            <div style="display: flex; justify-content: between;">
+            <div style="display: flex; justify-content: space-between;">
                 <span>Total Faculty:</span>
                 <strong>{{ departments|sum(attribute='faculty_count') }}</strong>
             </div>
-            <div style="display: flex; justify-content: between;">
+            <div style="display: flex; justify-content: space-between;">
                 <span>Total Students:</span>
                 <strong>{{ departments|sum(attribute='student_count') }}</strong>
             </div>
@@ -61,7 +61,7 @@
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 15px;">
         {% for dept in departments %}
         <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px;">
-            <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <h4 style="margin: 0; color: #2c3e50;">{{ dept.name }}</h4>
                 <span style="background: {% if dept.hod_id %}#27ae60{% else %}#e74c3c{% endif %}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
                     {% if dept.hod_id %}HOD Assigned{% else %}No HOD{% endif %}
@@ -88,6 +88,18 @@
                     </span>
                 </div>
             </div>
+            
+            {% if not dept.hod_id and hods %}
+            <div style="margin-top: 10px;">
+                <label><strong>Assign HOD:</strong></label>
+                <select onchange="assignHOD(this.value, {{ dept.id }})" style="width: 100%; padding: 5px; margin-top: 5px;">
+                    <option value="">Select HOD</option>
+                    {% for hod in hods %}
+                    <option value="{{ hod.id }}">{{ hod.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
@@ -97,6 +109,7 @@
 </div>
 
 <script>
+// Create Department Form Submission
 document.getElementById('createDepartmentForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -118,7 +131,38 @@ document.getElementById('createDepartmentForm').addEventListener('submit', funct
         } else {
             alert('Error: ' + data.message);
         }
+    })
+    .catch(error => {
+        alert('Network error: ' + error);
     });
 });
+
+// Assign HOD Function
+function assignHOD(hodId, departmentId) {
+    if (!hodId) return;
+    
+    if (confirm('Are you sure you want to assign this HOD to the department?')) {
+        fetch('/principal/assign-hod', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                department_id: departmentId,
+                hod_id: hodId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('HOD assigned successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Network error: ' + error);
+        });
+    }
+}
 </script>
 {% endblock %}

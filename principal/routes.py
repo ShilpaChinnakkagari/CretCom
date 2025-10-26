@@ -133,6 +133,7 @@ def user_management():
                          users=users, 
                          blocks=blocks,
                          rooms=rooms)
+
 @principal_bp.route('/create-user', methods=['POST'])
 def create_user_route():
     return create_user()
@@ -153,7 +154,80 @@ def department_management():
     if session.get('user_role') != 'principal':
         flash('Access denied', 'error')
         return redirect('/login')
-    return render_template('principal/department_management.html')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get all departments with HOD information
+    cursor.execute("""
+        SELECT d.*, u.name as hod_name 
+        FROM departments d 
+        LEFT JOIN users u ON d.hod_id = u.id 
+        ORDER BY d.name
+    """)
+    departments = cursor.fetchall()
+    
+    # Get all HODs for dropdown
+    cursor.execute("SELECT id, name FROM users WHERE role = 'hod'")
+    hods = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('principal/department_management.html', 
+                         departments=departments, 
+                         hods=hods)
+
+@principal_bp.route('/create-department', methods=['POST'])
+def create_department():
+    if session.get('user_role') != 'principal':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    data = request.get_json()
+    department_name = data['name'].strip()
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(
+            "INSERT INTO departments (name, created_by) VALUES (%s, %s)",
+            (department_name, session['user_id'])
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': f'Department {department_name} created successfully'})
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+
+@principal_bp.route('/assign-hod', methods=['POST'])
+def assign_hod():
+    if session.get('user_role') != 'principal':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    data = request.get_json()
+    department_id = data['department_id']
+    hod_id = data['hod_id']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(
+            "UPDATE departments SET hod_id = %s WHERE id = %s",
+            (hod_id, department_id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': 'HOD assigned successfully'})
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
 @principal_bp.route('/analytics')
 def analytics():

@@ -26,16 +26,12 @@ def admin_dashboard():
     cursor.execute("SELECT COUNT(*) as new_today FROM students WHERE DATE(created_at) = CURDATE()")
     new_today = cursor.fetchone()['new_today']
     
-    cursor.execute("SELECT COUNT(*) as total_faculty FROM users WHERE role='faculty'")
-    total_faculty = cursor.fetchone()['total_faculty']
-    
     cursor.close()
     conn.close()
     
     stats = {
         'total_students': total_students,
-        'new_today': new_today,
-        'total_faculty': total_faculty
+        'new_today': new_today
     }
     
     return render_template('admin/dashboard.html', stats=stats)
