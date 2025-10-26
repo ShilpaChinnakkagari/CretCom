@@ -15,26 +15,25 @@
 <h1>Admin User Management</h1>
 
 <!-- REAL-TIME ADMIN CREATION FORM -->
-<div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
-    <h3>➕ Create New Admin Staff</h3>
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">➕ Create New Admin Staff</h3>
     <form id="createUserForm">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            
             <!-- BASIC INFORMATION -->
             <div>
                 <label>Full Name *:</label>
-                <input type="text" name="name" required style="width: 100%; padding: 8px;" 
-                       placeholder="Enter full name" onblur="generateUserID()">
+                <input type="text" name="name" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Enter full name" onblur="generateUserID()">
             </div>
             <div>
                 <label>User ID *:</label>
-                <input type="text" name="username" required style="width: 100%; padding: 8px;" 
-                       placeholder="Auto-generated" readonly>
+                <input type="text" name="username" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Auto-generated" readonly>
             </div>
             
             <!-- ROLE & DEPARTMENT -->
             <div>
                 <label>Admin Role *:</label>
-                <select name="role" required style="width: 100%; padding: 8px;" onchange="updateRoleBasedFields()">
+                <select name="role" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" onchange="updateRoleBasedFields()">
                     <option value="">Select Admin Role</option>
                     <optgroup label="Academic Roles">
                         <option value="hod">Head of Department (HOD)</option>
@@ -57,7 +56,7 @@
             <!-- DYNAMIC DEPARTMENT FIELD -->
             <div id="departmentField">
                 <label>Department *:</label>
-                <select name="department" style="width: 100%; padding: 8px;" id="departmentSelect">
+                <select name="department" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="departmentSelect">
                     <option value="">Select Department</option>
                 </select>
             </div>
@@ -65,26 +64,23 @@
             <!-- DESIGNATION -->
             <div>
                 <label>Designation *:</label>
-                <input type="text" name="designation" required style="width: 100%; padding: 8px;" 
-                       placeholder="Enter designation (e.g., Professor, Assistant Professor, Manager)" id="designationInput">
+                <input type="text" name="designation" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Enter designation (e.g., Professor, Assistant Professor, Manager)" id="designationInput">
             </div>
 
             <!-- CONTACT DETAILS -->
             <div>
                 <label>Email Address *:</label>
-                <input type="email" name="email" required style="width: 100%; padding: 8px;" 
-                       placeholder="official@college.edu">
+                <input type="email" name="email" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="official@college.edu">
             </div>
             <div>
                 <label>Phone Number *:</label>
-                <input type="text" name="phone" required style="width: 100%; padding: 8px;" 
-                       placeholder="10-digit mobile number" pattern="[0-9]{10}">
+                <input type="text" name="phone" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="10-digit mobile number" pattern="[0-9]{10}">
             </div>
 
             <!-- WORK LOCATION WITH BLOCKS -->
             <div>
                 <label>Work Location *:</label>
-                <select name="location" required style="width: 100%; padding: 8px;" id="locationSelect">
+                <select name="location" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="locationSelect">
                     <option value="">Select Block & Room</option>
                     {% for block in blocks %}
                         <optgroup label="{{ block.block_code }} - {{ block.block_name }}">
@@ -103,24 +99,22 @@
             <!-- SALARY & JOINING -->
             <div>
                 <label>Monthly Salary (₹) *:</label>
-                <input type="number" name="salary" required style="width: 100%; padding: 8px;" 
-                       placeholder="25000 - 80000" min="25000" max="100000" id="salaryInput">
+                <input type="number" name="salary" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="25000 - 80000" min="25000" max="100000" id="salaryInput">
                 <small style="color: #666;" id="salaryRange">Suggested: ₹25,000 - ₹40,000</small>
             </div>
             <div>
                 <label>Date of Joining *:</label>
-                <input type="date" name="date_of_joining" required style="width: 100%; padding: 8px;" id="dateOfJoining">
+                <input type="date" name="date_of_joining" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="dateOfJoining">
             </div>
 
             <!-- IDENTIFICATION -->
             <div>
                 <label>Aadhar Number *:</label>
-                <input type="text" name="aadhar_number" required style="width: 100%; padding: 8px;" 
-                       placeholder="12-digit Aadhar number" pattern="[0-9]{12}">
+                <input type="text" name="aadhar_number" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="12-digit Aadhar number" pattern="[0-9]{12}">
             </div>
             <div>
                 <label>Graduation/Domain *:</label>
-                <select name="graduation_domain" required style="width: 100%; padding: 8px;" id="domainSelect">
+                <select name="graduation_domain" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="domainSelect">
                     <option value="">Select Qualification</option>
                     <option value="Ph.D">Ph.D</option>
                     <option value="M.Tech">M.Tech</option>
@@ -155,45 +149,96 @@
 </div>
 
 <!-- EXISTING ADMINS TABLE -->
-<div style="background: white; padding: 20px; border-radius: 10px;">
-    <h3>👥 Existing Admin Staff ({{ users|length }})</h3>
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+<div style="background: white; padding: 25px; border-radius: 10px; margin-top: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3 style="color: #2c3e50; border-bottom: 2px solid #e74c3c; padding-bottom: 10px;">👥 Existing Admin Staff ({{ users|length }})</h3>
+    
+    {% if users %}
+    <div style="overflow-x: auto; margin-top: 20px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <thead>
-                <tr style="background: #34495e; color: white;">
-                    <th style="padding: 12px; text-align: left;">User ID</th>
-                    <th style="padding: 12px; text-align: left;">Name</th>
-                    <th style="padding: 12px; text-align: left;">Role</th>
-                    <th style="padding: 12px; text-align: left;">Designation</th>
-                    <th style="padding: 12px; text-align: left;">Department</th>
-                    <th style="padding: 12px; text-align: left;">Location</th>
-                    <th style="padding: 12px; text-align: center;">Password Changed</th>
+                <tr style="background: linear-gradient(135deg, #34495e, #2c3e50); color: white;">
+                    <th style="padding: 15px; text-align: left;">User ID</th>
+                    <th style="padding: 15px; text-align: left;">Name</th>
+                    <th style="padding: 15px; text-align: left;">Role</th>
+                    <th style="padding: 15px; text-align: left;">Designation</th>
+                    <th style="padding: 15px; text-align: left;">Department</th>
+                    <th style="padding: 15px; text-align: left;">Location</th>
+                    <th style="padding: 15px; text-align: center;">Password Changed</th>
+                    <th style="padding: 15px; text-align: center;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for user in users %}
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 12px;">
-                        <strong>{{ user.username }}</strong>
+                <tr style="border-bottom: 1px solid #ecf0f1;">
+                    <td style="padding: 15px;">
+                        <strong style="color: #2c3e50;">{{ user.username }}</strong>
                     </td>
-                    <td style="padding: 12px;">{{ user.name }}</td>
-                    <td style="padding: 12px;">
+                    <td style="padding: 15px;">{{ user.name }}</td>
+                    <td style="padding: 15px;">
                         <span style="background: #e9ecef; padding: 4px 8px; border-radius: 10px; font-size: 0.8em;">
                             {{ user.role|replace('_', ' ')|title }}
                         </span>
                     </td>
-                    <td style="padding: 12px;">{{ user.designation or 'N/A' }}</td>
-                    <td style="padding: 12px;">{{ user.department or 'N/A' }}</td>
-                    <td style="padding: 12px;">{{ user.location or 'N/A' }}</td>
-                    <td style="padding: 12px; text-align: center;">
+                    <td style="padding: 15px;">{{ user.designation or 'N/A' }}</td>
+                    <td style="padding: 15px;">{{ user.department or 'N/A' }}</td>
+                    <td style="padding: 15px;">{{ user.location or 'N/A' }}</td>
+                    <td style="padding: 15px; text-align: center;">
                         <span style="color: {% if user.password_changed %}#28a745{% else %}#dc3545{% endif %}; font-weight: bold;">
                             {% if user.password_changed %}✅ Changed{% else %}❌ Not Changed{% endif %}
                         </span>
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        <button onclick="viewAdminDetails('{{ user.username }}')" style="padding: 6px 10px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 2px; font-size: 11px;">
+                            👁️ View
+                        </button>
+                        <button onclick="editAdmin('{{ user.username }}')" style="padding: 6px 10px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 2px; font-size: 11px;">
+                            ✏️ Edit
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+        <div style="font-size: 48px; margin-bottom: 20px;">👥</div>
+        <h4 style="color: #95a5a6;">No Admin Staff Created Yet</h4>
+        <p>Start by creating your first admin staff member using the form above.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- VIEW ADMIN DETAILS MODAL -->
+<div id="viewAdminModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto;">
+        <h3>👤 Admin Complete Details</h3>
+        <div id="adminDetailsContainer">
+            <!-- Admin details will be loaded here -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="closeViewAdminModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT ADMIN MODAL -->
+<div id="editAdminModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <h3>✏️ Edit Admin Details</h3>
+        <div id="editAdminFormContainer">
+            <!-- Edit form will be loaded here -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="closeEditAdminModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">
+                Cancel
+            </button>
+            <button onclick="saveAdminChanges()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Save Changes
+            </button>
+        </div>
     </div>
 </div>
 
@@ -382,6 +427,171 @@ document.getElementById('createUserForm').addEventListener('submit', function(e)
         submitBtn.disabled = false;
     });
 });
+
+// Admin Management Functions
+let currentEditAdminUsername = null;
+
+function viewAdminDetails(username) {
+    fetch('/principal/get-admin-details/' + username)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const admin = data.admin;
+            
+            // Format date for display
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                return new Date(dateString).toLocaleDateString('en-IN');
+            };
+
+            const detailsHTML = `
+                <div style="max-height: 60vh; overflow-y: auto; padding: 10px;">
+                    <!-- Basic Information -->
+                    <div style="background: #e8f4fd; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">👤 Basic Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>User ID:</strong><br>${admin.username}</div>
+                            <div><strong>Full Name:</strong><br>${admin.name}</div>
+                            <div><strong>Email:</strong><br>${admin.email}</div>
+                            <div><strong>Phone:</strong><br>${admin.phone}</div>
+                            <div><strong>Role:</strong><br>${admin.role.replace('_', ' ').toUpperCase()}</div>
+                            <div><strong>Designation:</strong><br>${admin.designation || 'N/A'}</div>
+                            <div><strong>Department:</strong><br>${admin.department || 'N/A'}</div>
+                            <div><strong>Location:</strong><br>${admin.location || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Professional Information -->
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">💼 Professional Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Salary:</strong><br>₹${admin.salary}</div>
+                            <div><strong>Date of Joining:</strong><br>${formatDate(admin.date_of_joining)}</div>
+                            <div><strong>Graduation Domain:</strong><br>${admin.graduation_domain}</div>
+                            <div><strong>Status:</strong><br><span style="color: ${admin.status === 'active' ? '#27ae60' : '#e74c3c'}">${admin.status.toUpperCase()}</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Identification & Security -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">🔐 Identification & Security</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Aadhar Number:</strong><br>${admin.aadhar_number}</div>
+                            <div><strong>Password Changed:</strong><br><span style="color: ${admin.password_changed ? '#27ae60' : '#e74c3c'}">${admin.password_changed ? 'YES' : 'NO'}</span></div>
+                            <div><strong>Created By:</strong><br>${admin.created_by || 'System'}</div>
+                            <div><strong>Created Date:</strong><br>${formatDate(admin.created_at)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('adminDetailsContainer').innerHTML = detailsHTML;
+            document.getElementById('viewAdminModal').style.display = 'flex';
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    });
+}
+
+function closeViewAdminModal() {
+    document.getElementById('viewAdminModal').style.display = 'none';
+}
+
+function editAdmin(username) {
+    currentEditAdminUsername = username;
+    
+    fetch('/principal/get-admin-details/' + username)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const admin = data.admin;
+            
+            const editForm = `
+                <form id="editAdminForm">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label>Full Name *:</label>
+                            <input type="text" name="name" value="${admin.name}" required style="width: 100%; padding: 8px;">
+                        </div>
+                        <div>
+                            <label>Email *:</label>
+                            <input type="email" name="email" value="${admin.email}" required style="width: 100%; padding: 8px;">
+                        </div>
+                        <div>
+                            <label>Phone *:</label>
+                            <input type="text" name="phone" value="${admin.phone}" required style="width: 100%; padding: 8px;">
+                        </div>
+                        <div>
+                            <label>Designation *:</label>
+                            <input type="text" name="designation" value="${admin.designation || ''}" required style="width: 100%; padding: 8px;">
+                        </div>
+                        <div>
+                            <label>Department:</label>
+                            <input type="text" name="department" value="${admin.department || ''}" style="width: 100%; padding: 8px;">
+                        </div>
+                        <div>
+                            <label>Location:</label>
+                            <input type="text" name="location" value="${admin.location || ''}" style="width: 100%; padding: 8px;">
+                        </div>
+                        <div>
+                            <label>Salary (₹):</label>
+                            <input type="number" name="salary" value="${admin.salary}" style="width: 100%; padding: 8px;">
+                        </div>
+                        <div>
+                            <label>Date of Joining:</label>
+                            <input type="date" name="date_of_joining" value="${admin.date_of_joining}" style="width: 100%; padding: 8px;">
+                        </div>
+                        <div>
+                            <label>Graduation Domain:</label>
+                            <input type="text" name="graduation_domain" value="${admin.graduation_domain}" style="width: 100%; padding: 8px;">
+                        </div>
+                    </div>
+                </form>
+            `;
+            
+            document.getElementById('editAdminFormContainer').innerHTML = editForm;
+            document.getElementById('editAdminModal').style.display = 'flex';
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    });
+}
+
+function closeEditAdminModal() {
+    document.getElementById('editAdminModal').style.display = 'none';
+    currentEditAdminUsername = null;
+}
+
+function saveAdminChanges() {
+    const formData = new FormData(document.getElementById('editAdminForm'));
+    const adminData = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        designation: formData.get('designation'),
+        department: formData.get('department'),
+        location: formData.get('location'),
+        salary: parseFloat(formData.get('salary')),
+        date_of_joining: formData.get('date_of_joining'),
+        graduation_domain: formData.get('graduation_domain')
+    };
+    
+    fetch('/principal/update-admin/' + currentEditAdminUsername, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(adminData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Admin updated successfully!');
+            closeEditAdminModal();
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    });
+}
 
 // Initialize form
 document.addEventListener('DOMContentLoaded', function() {

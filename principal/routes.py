@@ -122,8 +122,8 @@ def user_management():
     """)
     rooms = cursor.fetchall()
     
-    # Get existing users
-    cursor.execute("SELECT * FROM users WHERE role != 'principal'")
+    # Get existing users (all except principal) - FIXED: use created_at instead of created_date
+    cursor.execute("SELECT * FROM users WHERE role != 'principal' ORDER BY created_at DESC")
     users = cursor.fetchall()
     
     cursor.close()
@@ -142,12 +142,124 @@ def create_user_route():
 def get_users_route():
     return get_users()
 
+@principal_bp.route('/get-admin-details/<username>')
+def get_admin_details(username):
+    if session.get('user_role') != 'principal':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+        admin = cursor.fetchone()
+        
+        cursor.close()
+        conn.close()
+        
+        if admin:
+            return jsonify({'success': True, 'admin': admin})
+        else:
+            return jsonify({'success': False, 'message': 'Admin not found'})
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        return jsonify({'success': False, 'message': str(e)})
+
+@principal_bp.route('/update-admin/<username>', methods=['POST'])
+def update_admin(username):
+    if session.get('user_role') != 'principal':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    admin_data = request.get_json()
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            UPDATE users 
+            SET name = %s, email = %s, phone = %s, designation = %s, 
+                department = %s, location = %s, salary = %s, 
+                date_of_joining = %s, graduation_domain = %s
+            WHERE username = %s
+        """, (
+            admin_data['name'], admin_data['email'], admin_data['phone'],
+            admin_data['designation'], admin_data['department'], admin_data['location'],
+            admin_data['salary'], admin_data['date_of_joining'], admin_data['graduation_domain'],
+            username
+        ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Admin updated successfully!'})
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        return jsonify({'success': False, 'message': str(e)})
+
+@principal_bp.route('/update-hod-assignment', methods=['POST'])
+def update_hod_assignment():
+    if session.get('user_role') != 'principal':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    data = request.get_json()
+    department_id = data['department_id']
+    hod_id = data['hod_id']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # First, remove current HOD from any department
+        cursor.execute("UPDATE departments SET hod_id = NULL WHERE hod_id = %s", (hod_id,))
+        
+        # Assign HOD to the new department
+        cursor.execute("UPDATE departments SET hod_id = %s WHERE id = %s", (hod_id, department_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': 'HOD assignment updated successfully!'})
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        return jsonify({'success': False, 'message': str(e)})
+
+@principal_bp.route('/remove-hod/<int:department_id>', methods=['POST'])
+def remove_hod(department_id):
+    if session.get('user_role') != 'principal':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("UPDATE departments SET hod_id = NULL WHERE id = %s", (department_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': 'HOD removed successfully!'})
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        return jsonify({'success': False, 'message': str(e)})
+
 @principal_bp.route('/finance-management')
 def finance_management():
     if session.get('user_role') != 'principal':
         flash('Access denied', 'error')
         return redirect('/login')
-    return render_template('principal/finance_management.html')
+    
+    # Add empty finances to avoid template error
+    finances = {
+        'total_revenue': 0,
+        'total_expenses': 0,
+        'current_balance': 0
+    }
+    
+    return render_template('principal/finance_management.html', finances=finances)
 
 @principal_bp.route('/department-management')
 def department_management():
@@ -160,7 +272,7 @@ def department_management():
     
     # Get all departments with HOD information
     cursor.execute("""
-        SELECT d.*, u.name as hod_name 
+        SELECT d.*, u.name as hod_name, u.username as hod_username
         FROM departments d 
         LEFT JOIN users u ON d.hod_id = u.id 
         ORDER BY d.name
@@ -168,7 +280,7 @@ def department_management():
     departments = cursor.fetchall()
     
     # Get all HODs for dropdown
-    cursor.execute("SELECT id, name FROM users WHERE role = 'hod'")
+    cursor.execute("SELECT id, name, username FROM users WHERE role = 'hod'")
     hods = cursor.fetchall()
     
     cursor.close()

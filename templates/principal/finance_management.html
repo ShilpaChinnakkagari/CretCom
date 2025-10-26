@@ -41,28 +41,9 @@
 <!-- Salary Distribution -->
 <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
     <h3>💰 Salary Distribution</h3>
-    {% if salary_distribution %}
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="background: #34495e; color: white;">
-                    <th style="padding: 12px;">Department</th>
-                    <th style="padding: 12px;">Role</th>
-                    <th style="padding: 12px;">Total Salary</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for salary in salary_distribution %}
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 12px;">{{ salary.department }}</td>
-                    <td style="padding: 12px;">{{ salary.role }}</td>
-                    <td style="padding: 12px;">₹{{ salary.total_salary }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No salary data available</p>
-    {% endif %}
+    <p style="text-align: center; color: #7f8c8d; padding: 20px;">
+        Salary distribution data will be available soon.
+    </p>
 </div>
 
 <script>
@@ -70,23 +51,10 @@ document.getElementById('addRevenueForm').addEventListener('submit', function(e)
     e.preventDefault();
     const formData = new FormData(this);
     
-    fetch('/principal/add-revenue', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            amount: formData.get('amount'),
-            description: formData.get('description')
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Revenue added successfully!');
-            location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    });
+    alert('Revenue management feature will be implemented soon!');
+    
+    // Reset form
+    this.reset();
 });
 </script>
 {% endblock %}
