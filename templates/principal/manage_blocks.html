@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Blocks & Rooms - CretCom{% endblock %}
+
+{% block content %}
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h1>🏢 Manage Campus Blocks & Rooms</h1>
+    <p style="color: #666;">Create blocks and assign rooms for admin staff placement</p>
+</div>
+
+<!-- Add New Block -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3>➕ Create New Block</h3>
+    <form id="addBlockForm">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">Block Code *</label>
+                <input type="text" name="block_code" placeholder="SB, EB, WB, AB" required 
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; text-transform: uppercase;">
+                <small style="color: #666;">Unique code (2-3 characters)</small>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">Block Name *</label>
+                <input type="text" name="block_name" placeholder="South Block, East Block" required 
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            </div>
+        </div>
+        <button type="submit" style="margin-top: 15px; padding: 12px 25px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+            🏢 Create Block
+        </button>
+    </form>
+</div>
+
+<!-- Add New Room -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3>🚪 Add Rooms to Block</h3>
+    <form id="addRoomForm">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">Select Block *</label>
+                <select name="block_code" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">Select Block</option>
+                    {% for block in blocks %}
+                    <option value="{{ block.block_code }}">{{ block.block_code }} - {{ block.block_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">Floor *</label>
+                <select name="floor" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="0">Ground Floor</option>
+                    <option value="1">1st Floor</option>
+                    <option value="2">2nd Floor</option>
+                    <option value="3">3rd Floor</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">Room Number *</label>
+                <input type="text" name="room_number" placeholder="001, 002, 101" required 
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">Room Type</label>
+                <select name="room_type" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="office">Office</option>
+                    <option value="classroom">Classroom</option>
+                    <option value="lab">Lab</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" style="margin-top: 15px; padding: 12px 25px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+            🚪 Add Room
+        </button>
+    </form>
+</div>
+
+<!-- Current Blocks & Rooms -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3>📋 Current Campus Structure</h3>
+    
+    {% if blocks %}
+        {% for block in blocks %}
+        <div style="border: 1px solid #e0e0e0; margin: 15px 0; padding: 15px; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 style="margin: 0;">🏢 {{ block.block_code }} - {{ block.block_name }}</h4>
+                <span style="color: #666; font-size: 0.9em;">Created: {{ block.created_at.strftime('%Y-%m-%d') }}</span>
+            </div>
+            
+            <div>
+                {% set block_rooms = [] %}
+                {% for room in rooms %}
+                    {% if room.block_code == block.block_code %}
+                        {% set _ = block_rooms.append(room) %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if block_rooms %}
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                        {% for room in block_rooms %}
+                        <div style="border: 1px solid #ddd; padding: 12px; border-radius: 6px; background: #f8f9fa;">
+                            <div style="font-weight: bold; font-size: 16px; color: #2c3e50;">{{ block.block_code }}-{{ room.room_number }}</div>
+                            <div style="color: #666; font-size: 0.9em; margin: 5px 0;">
+                                Floor: {{ room.floor }} | Type: {{ room.room_type }}
+                            </div>
+                            <div style="color: #27ae60; font-weight: bold; font-size: 0.8em;">
+                                {{ room.status|title }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div style="padding: 20px; text-align: center; color: #95a5a6; font-style: italic;">
+                        No rooms added to this block yet
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+            <p>🎯 No blocks created yet. Create your first block above.</p>
+            <p><strong>Examples:</strong> SB (South Block), EB (East Block), WB (West Block), AB (Admin Block)</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.getElementById('addBlockForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch('/principal/create-block', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            block_code: formData.get('block_code').toUpperCase(),
+            block_name: formData.get('block_name')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Block created successfully!');
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    });
+});
+
+document.getElementById('addRoomForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch('/principal/create-room', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            block_code: formData.get('block_code'),
+            floor: parseInt(formData.get('floor')),
+            room_number: formData.get('room_number'),
+            room_type: formData.get('room_type')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Room added successfully!');
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    });
+});
+</script>
+{% endblock %}

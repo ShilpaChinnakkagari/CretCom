@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - CretCom{% endblock %}
+
+{% block navigation %}
+    <a href="{{ url_for('principal.dashboard') }}">📊 Dashboard</a>
+    <a href="{{ url_for('principal.user_management') }}">👥 User Management</a>
+    <a href="{{ url_for('principal.approvals') }}">✅ Approvals</a>
+    <a href="{{ url_for('principal.analytics') }}">📈 Analytics</a>
+    <a href="{{ url_for('logout') }}" style="float: right;">🚪 Logout</a>
+{% endblock %}
+
+{% block content %}
+<h2>Reports & Exports</h2>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;">
+    <div style="background: white; padding: 25px; border-radius: 10px; text-align: center;">
+        <h3>👥 User Report</h3>
+        <p>Export complete user database</p>
+        <button style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+            📥 Download CSV
+        </button>
+    </div>
+
+    <div style="background: white; padding: 25px; border-radius: 10px; text-align: center;">
+        <h3>📊 Attendance Report</h3>
+        <p>Monthly attendance summary</p>
+        <button style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+            📥 Download PDF
+        </button>
+    </div>
+
+    <div style="background: white; padding: 25px; border-radius: 10px; text-align: center;">
+        <h3>🎓 Department Report</h3>
+        <p>Department-wise statistics</p>
+        <button style="background: #6f42c1; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+            📥 Download Excel
+        </button>
+    </div>
+
+    <div style="background: white; padding: 25px; border-radius: 10px; text-align: center;">
+        <h3>📈 System Report</h3>
+        <p>Complete system analytics</p>
+        <button style="background: #fd7e14; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+            📥 Download Report
+        </button>
+    </div>
+</div>
+
+<div style="background: white; padding: 20px; border-radius: 10px; margin-top: 20px;">
+    <h3>📋 Custom Report Generator</h3>
+    <form style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 15px;">
+        <div>
+            <label>Report Type:</label>
+            <select style="width: 100%; padding: 8px;">
+                <option>User Statistics</option>
+                <option>Attendance Summary</option>
+                <option>Department Performance</option>
+                <option>Financial Report</option>
+            </select>
+        </div>
+        <div>
+            <label>Start Date:</label>
+            <input type="date" style="width: 100%; padding: 8px;">
+        </div>
+        <div>
+            <label>End Date:</label>
+            <input type="date" style="width: 100%; padding: 8px;">
+        </div>
+        <div style="grid-column: span 3;">
+            <button type="submit" style="background: #17a2b8; color: white; border: none; padding: 10px 30px; border-radius: 5px; cursor: pointer;">
+                🚀 Generate Report
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

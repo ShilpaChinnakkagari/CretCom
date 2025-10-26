@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Approvals - CretCom{% endblock %}
+
+{% block navigation %}
+    <a href="{{ url_for('principal.dashboard') }}">📊 Dashboard</a>
+    <a href="{{ url_for('principal.user_management') }}">👥 User Management</a>
+    <a href="{{ url_for('principal.approvals') }}">✅ Approvals</a>
+    <a href="{{ url_for('principal.analytics') }}">📈 Analytics</a>
+    <a href="{{ url_for('logout') }}" style="float: right;">🚪 Logout</a>
+{% endblock %}
+
+{% block content %}
+<h2>Approval Management</h2>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <!-- Pending Approvals -->
+    <div style="background: white; padding: 20px; border-radius: 10px;">
+        <h3>🕒 Pending Approvals ({{ pending_approvals|length }})</h3>
+        {% if pending_approvals %}
+            {% for approval in pending_approvals %}
+            <div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                <h4>{{ approval.title }}</h4>
+                <p><strong>Type:</strong> {{ approval.type|title }}</p>
+                <p><strong>Requested by:</strong> {{ approval.created_by }}</p>
+                <p><strong>Date:</strong> {{ approval.created_date[:10] }}</p>
+                <div style="margin-top: 10px;">
+                    <button onclick="approveRequest('{{ approval.id }}')" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer; margin-right: 10px;">
+                        ✅ Approve
+                    </button>
+                    <button onclick="rejectRequest('{{ approval.id }}')" style="background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer;">
+                        ❌ Reject
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p>No pending approvals</p>
+        {% endif %}
+    </div>
+
+    <!-- Approval History -->
+    <div style="background: white; padding: 20px; border-radius: 10px;">
+        <h3>📋 Recent History</h3>
+        <div style="margin-bottom: 20px;">
+            <h4>✅ Approved ({{ approved_approvals|length }})</h4>
+            {% for approval in approved_approvals[-5:] %}
+            <div style="border-left: 4px solid #28a745; padding: 10px; margin: 5px 0; background: #f8f9fa;">
+                <strong>{{ approval.title }}</strong><br>
+                <small>Approved by: {{ approval.approved_by }} on {{ approval.approved_date[:10] }}</small>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div>
+            <h4>❌ Rejected ({{ rejected_approvals|length }})</h4>
+            {% for approval in rejected_approvals[-5:] %}
+            <div style="border-left: 4px solid #dc3545; padding: 10px; margin: 5px 0; background: #f8f9fa;">
+                <strong>{{ approval.title }}</strong><br>
+                <small>Rejected by: {{ approval.rejected_by }} on {{ approval.rejected_date[:10] }}</small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function approveRequest(approvalId) {
+    fetch(`/principal/approve-request/${approvalId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Request approved successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+}
+
+function rejectRequest(approvalId) {
+    if (confirm('Are you sure you want to reject this request?')) {
+        fetch(`/principal/reject-request/${approvalId}`, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Request rejected successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

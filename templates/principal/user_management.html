@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - CretCom{% endblock %}
+
+{% block navigation %}
+    <a href="/principal/dashboard">📊 Dashboard</a>
+    <a href="/principal/user-management">👥 User Management</a>
+    <a href="/principal/finance-management">💰 Finance</a>
+    <a href="/principal/department-management">🏫 Departments</a>
+    <a href="/principal/analytics">📈 Analytics</a>
+    <a href="/logout">🚪 Logout</a>
+{% endblock %}
+
+{% block content %}
+<h1>Admin User Management</h1>
+
+<!-- REAL-TIME ADMIN CREATION FORM -->
+<div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+    <h3>➕ Create New Admin Staff</h3>
+    <form id="createUserForm">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <!-- BASIC INFORMATION -->
+            <div>
+                <label>Full Name *:</label>
+                <input type="text" name="name" required style="width: 100%; padding: 8px;" 
+                       placeholder="Enter full name" onblur="generateUserID()">
+            </div>
+            <div>
+                <label>User ID *:</label>
+                <input type="text" name="username" required style="width: 100%; padding: 8px;" 
+                       placeholder="Auto-generated" readonly>
+            </div>
+            
+            <!-- ROLE & DEPARTMENT -->
+            <div>
+                <label>Admin Role *:</label>
+                <select name="role" required style="width: 100%; padding: 8px;" onchange="updateRoleBasedFields()">
+                    <option value="">Select Admin Role</option>
+                    <optgroup label="Academic Roles">
+                        <option value="hod">Head of Department (HOD)</option>
+                        <option value="faculty">Faculty Member</option>
+                    </optgroup>
+                    <optgroup label="Administrative Roles">
+                        <option value="college_admin">College Administrator</option>
+                        <option value="fee_admin">Fee Administrator</option>
+                        <option value="placement_admin">Placement Administrator</option>
+                        <option value="exam_admin">Exam Administrator</option>
+                        <option value="library_admin">Library Administrator</option>
+                        <option value="scholarship_admin">Scholarship Administrator</option>
+                        <option value="events_admin">Events Administrator</option>
+                        <option value="research_admin">Research Administrator</option>
+                        <option value="grievance_admin">Grievance Administrator</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- DYNAMIC DEPARTMENT FIELD -->
+            <div id="departmentField">
+                <label>Department *:</label>
+                <select name="department" style="width: 100%; padding: 8px;" id="departmentSelect">
+                    <option value="">Select Department</option>
+                </select>
+            </div>
+
+            <!-- DESIGNATION -->
+            <div>
+                <label>Designation *:</label>
+                <input type="text" name="designation" required style="width: 100%; padding: 8px;" 
+                       placeholder="Enter designation (e.g., Professor, Assistant Professor, Manager)" id="designationInput">
+            </div>
+
+            <!-- CONTACT DETAILS -->
+            <div>
+                <label>Email Address *:</label>
+                <input type="email" name="email" required style="width: 100%; padding: 8px;" 
+                       placeholder="official@college.edu">
+            </div>
+            <div>
+                <label>Phone Number *:</label>
+                <input type="text" name="phone" required style="width: 100%; padding: 8px;" 
+                       placeholder="10-digit mobile number" pattern="[0-9]{10}">
+            </div>
+
+            <!-- WORK LOCATION WITH BLOCKS -->
+            <div>
+                <label>Work Location *:</label>
+                <select name="location" required style="width: 100%; padding: 8px;" id="locationSelect">
+                    <option value="">Select Block & Room</option>
+                    {% for block in blocks %}
+                        <optgroup label="{{ block.block_code }} - {{ block.block_name }}">
+                            {% for room in rooms %}
+                                {% if room.block_code == block.block_code and room.status == 'available' %}
+                                    <option value="{{ block.block_code }}-{{ room.room_number }}">
+                                        {{ block.block_code }}-{{ room.room_number }} (Floor: {{ room.floor }}, Type: {{ room.room_type }})
+                                    </option>
+                                {% endif %}
+                            {% endfor %}
+                        </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- SALARY & JOINING -->
+            <div>
+                <label>Monthly Salary (₹) *:</label>
+                <input type="number" name="salary" required style="width: 100%; padding: 8px;" 
+                       placeholder="25000 - 80000" min="25000" max="100000" id="salaryInput">
+                <small style="color: #666;" id="salaryRange">Suggested: ₹25,000 - ₹40,000</small>
+            </div>
+            <div>
+                <label>Date of Joining *:</label>
+                <input type="date" name="date_of_joining" required style="width: 100%; padding: 8px;" id="dateOfJoining">
+            </div>
+
+            <!-- IDENTIFICATION -->
+            <div>
+                <label>Aadhar Number *:</label>
+                <input type="text" name="aadhar_number" required style="width: 100%; padding: 8px;" 
+                       placeholder="12-digit Aadhar number" pattern="[0-9]{12}">
+            </div>
+            <div>
+                <label>Graduation/Domain *:</label>
+                <select name="graduation_domain" required style="width: 100%; padding: 8px;" id="domainSelect">
+                    <option value="">Select Qualification</option>
+                    <option value="Ph.D">Ph.D</option>
+                    <option value="M.Tech">M.Tech</option>
+                    <option value="B.Tech">B.Tech</option>
+                    <option value="MBA">MBA</option>
+                    <option value="M.Com">M.Com</option>
+                    <option value="B.Com">B.Com</option>
+                    <option value="M.Sc">M.Sc</option>
+                    <option value="B.Sc">B.Sc</option>
+                    <option value="MLIS">MLIS (Library Science)</option>
+                    <option value="BLIS">BLIS (Library Science)</option>
+                    <option value="B.Ed">B.Ed</option>
+                    <option value="M.Ed">M.Ed</option>
+                    <option value="Post Graduation">Post Graduation</option>
+                    <option value="Graduation">Graduation</option>
+                    <option value="Diploma">Diploma</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+            <h4>📋 Admin Summary</h4>
+            <div id="adminSummary" style="color: #666;">
+                Fill the form to see admin details summary...
+            </div>
+        </div>
+
+        <button type="submit" style="margin-top: 15px; padding: 12px 30px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+            🚀 Create Admin Account
+        </button>
+    </form>
+</div>
+
+<!-- EXISTING ADMINS TABLE -->
+<div style="background: white; padding: 20px; border-radius: 10px;">
+    <h3>👥 Existing Admin Staff ({{ users|length }})</h3>
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+                <tr style="background: #34495e; color: white;">
+                    <th style="padding: 12px; text-align: left;">User ID</th>
+                    <th style="padding: 12px; text-align: left;">Name</th>
+                    <th style="padding: 12px; text-align: left;">Role</th>
+                    <th style="padding: 12px; text-align: left;">Designation</th>
+                    <th style="padding: 12px; text-align: left;">Department</th>
+                    <th style="padding: 12px; text-align: left;">Location</th>
+                    <th style="padding: 12px; text-align: center;">Password Changed</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 12px;">
+                        <strong>{{ user.username }}</strong>
+                    </td>
+                    <td style="padding: 12px;">{{ user.name }}</td>
+                    <td style="padding: 12px;">
+                        <span style="background: #e9ecef; padding: 4px 8px; border-radius: 10px; font-size: 0.8em;">
+                            {{ user.role|replace('_', ' ')|title }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">{{ user.designation or 'N/A' }}</td>
+                    <td style="padding: 12px;">{{ user.department or 'N/A' }}</td>
+                    <td style="padding: 12px;">{{ user.location or 'N/A' }}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="color: {% if user.password_changed %}#28a745{% else %}#dc3545{% endif %}; font-weight: bold;">
+                            {% if user.password_changed %}✅ Changed{% else %}❌ Not Changed{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Set today's date as default for date of joining
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('dateOfJoining').value = today;
+    updateRoleBasedFields(); // Initialize fields
+});
+
+// Update fields based on role selection
+function updateRoleBasedFields() {
+    const role = document.querySelector('select[name="role"]').value;
+    const departmentField = document.getElementById('departmentField');
+    const departmentSelect = document.getElementById('departmentSelect');
+    const designationInput = document.getElementById('designationInput');
+    
+    // Clear previous options
+    departmentSelect.innerHTML = '<option value="">Select Department</option>';
+    
+    if (role === 'hod' || role === 'faculty') {
+        // ACADEMIC ROLES - Show academic departments
+        departmentField.style.display = 'block';
+        departmentSelect.required = true;
+        
+        const academicDepts = [
+            'Computer Science & Engineering (CSE)',
+            'Artificial Intelligence (AI)',
+            'Data Science (DS)',
+            'Electronics & Communication',
+            'Mechanical Engineering',
+            'Civil Engineering',
+            'Electrical Engineering',
+            'Mathematics',
+            'Physics',
+            'Chemistry'
+        ];
+        
+        academicDepts.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept;
+            option.textContent = dept;
+            departmentSelect.appendChild(option);
+        });
+        
+        // Set academic designation suggestions
+        designationInput.placeholder = "Professor, Assistant Professor, Associate Professor";
+        
+    } else if (role === 'college_admin' || role.includes('_admin')) {
+        // ADMINISTRATIVE ROLES - Show administrative departments
+        departmentField.style.display = 'block';
+        departmentSelect.required = true;
+        
+        const adminDepts = [
+            'College Administration',
+            'Finance Department',
+            'Examination Section',
+            'Central Library',
+            'Student Affairs',
+            'Research & Development',
+            'Training & Placement',
+            'International Cell',
+            'Student Welfare',
+            'Scholarship Section'
+        ];
+        
+        adminDepts.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept;
+            option.textContent = dept;
+            departmentSelect.appendChild(option);
+        });
+        
+        // Set administrative designation suggestions
+        designationInput.placeholder = "Manager, Officer, Coordinator, Administrator";
+    } else {
+        // Hide department for other roles
+        departmentField.style.display = 'none';
+        departmentSelect.required = false;
+        designationInput.placeholder = "Enter designation";
+    }
+    
+    updateAdminSummary();
+}
+
+// Real-time form functionality
+function generateUserID() {
+    const name = document.querySelector('input[name="name"]').value;
+    const role = document.querySelector('select[name="role"]').value;
+    
+    if (name && role) {
+        const initials = name.split(' ').map(word => word[0].toUpperCase()).join('');
+        const prefix = getRolePrefix(role);
+        const timestamp = new Date().getTime().toString().slice(-4);
+        const userID = `${prefix}${initials}${timestamp}`;
+        
+        document.querySelector('input[name="username"]').value = userID;
+        updateAdminSummary();
+    }
+}
+
+function getRolePrefix(role) {
+    const prefixes = {
+        'hod': 'HOD',
+        'faculty': 'FAC',
+        'college_admin': 'CA',
+        'fee_admin': 'FA',
+        'placement_admin': 'PA',
+        'exam_admin': 'EA',
+        'library_admin': 'LA',
+        'scholarship_admin': 'SA',
+        'events_admin': 'EVA',
+        'research_admin': 'RA',
+        'grievance_admin': 'GA'
+    };
+    return prefixes[role] || 'AD';
+}
+
+function updateAdminSummary() {
+    const form = document.getElementById('createUserForm');
+    const formData = new FormData(form);
+    const summary = document.getElementById('adminSummary');
+    
+    const name = formData.get('name');
+    const role = formData.get('role');
+    const designation = formData.get('designation');
+    const department = formData.get('department');
+    const location = formData.get('location');
+    
+    if (name && role) {
+        summary.innerHTML = `
+            <strong>${name}</strong> will be appointed as <strong>${designation || 'Not specified'}</strong><br>
+            Role: <strong>${role ? role.replace('_', ' ').toUpperCase() : 'Not selected'}</strong><br>
+            Department: <strong>${department || 'Not selected'}</strong><br>
+            Location: <strong>${location || 'Not selected'}</strong>
+        `;
+    }
+}
+
+// Form submission
+document.getElementById('createUserForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const userData = {
+        username: formData.get('username'),
+        name: formData.get('name'),
+        role: formData.get('role'),
+        designation: formData.get('designation'),
+        department: formData.get('department'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        location: formData.get('location'),
+        salary: parseFloat(formData.get('salary')),
+        date_of_joining: formData.get('date_of_joining'),
+        aadhar_number: formData.get('aadhar_number'),
+        graduation_domain: formData.get('graduation_domain')
+    };
+    
+    // Show loading state
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '⏳ Creating Admin...';
+    submitBtn.disabled = true;
+    
+    fetch('/principal/create-user', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(userData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ Admin created successfully!\n\nUser ID: ${data.user_id}\nDefault Password: ${data.password}\n\nPlease share these credentials with the staff member.`);
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Initialize form
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelector('select[name="role"]').addEventListener('change', updateRoleBasedFields);
+    document.querySelector('input[name="name"]').addEventListener('input', generateUserID);
+});
+</script>
+{% endblock %}

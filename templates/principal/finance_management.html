@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Finance Management - CretCom{% endblock %}
+
+{% block navigation %}
+    <a href="/principal/dashboard">📊 Dashboard</a>
+    <a href="/principal/user-management">👥 User Management</a>
+    <a href="/principal/finance-management">💰 Finance</a>
+    <a href="/principal/department-management">🏫 Departments</a>
+    <a href="/principal/analytics">📈 Analytics</a>
+    <a href="/logout">🚪 Logout</a>
+{% endblock %}
+
+{% block content %}
+<h1>Financial Management</h1>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+    <!-- Financial Overview -->
+    <div style="background: white; padding: 20px; border-radius: 10px;">
+        <h3>💰 Financial Overview</h3>
+        <div style="font-size: 1.2em;">
+            <p>Total Revenue: <strong>₹{{ finances.total_revenue|default(0) }}</strong></p>
+            <p>Total Expenses: <strong>₹{{ finances.total_expenses|default(0) }}</strong></p>
+            <p>Current Balance: <strong>₹{{ finances.current_balance|default(0) }}</strong></p>
+        </div>
+    </div>
+
+    <!-- Add Revenue -->
+    <div style="background: white; padding: 20px; border-radius: 10px;">
+        <h3>➕ Add Revenue</h3>
+        <form id="addRevenueForm">
+            <input type="number" name="amount" placeholder="Amount" required style="width: 100%; padding: 8px; margin: 5px 0;">
+            <input type="text" name="description" placeholder="Description" required style="width: 100%; padding: 8px; margin: 5px 0;">
+            <button type="submit" style="padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Add Revenue
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Salary Distribution -->
+<div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+    <h3>💰 Salary Distribution</h3>
+    {% if salary_distribution %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #34495e; color: white;">
+                    <th style="padding: 12px;">Department</th>
+                    <th style="padding: 12px;">Role</th>
+                    <th style="padding: 12px;">Total Salary</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for salary in salary_distribution %}
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 12px;">{{ salary.department }}</td>
+                    <td style="padding: 12px;">{{ salary.role }}</td>
+                    <td style="padding: 12px;">₹{{ salary.total_salary }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No salary data available</p>
+    {% endif %}
+</div>
+
+<script>
+document.getElementById('addRevenueForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch('/principal/add-revenue', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            amount: formData.get('amount'),
+            description: formData.get('description')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Revenue added successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+{
+    "principal":  {
+                      "created_date":  "2024-01-01T00:00:00",
+                      "created_by":  "system",
+                      "name":  "Dr. College Principal",
+                      "password":  "principal123",
+                      "role":  "principal",
+                      "status":  "active",
+                      "department":  "Administration",
+                      "email":  "principal@college.edu"
+                  }
+}

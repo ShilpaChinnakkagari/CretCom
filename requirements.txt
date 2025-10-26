@@ -1,0 +1,2 @@
+# Ensure Flask dependency
+echo "Flask==2.3.3" > requirements.txt

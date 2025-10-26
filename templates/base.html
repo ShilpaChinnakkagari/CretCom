@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}CretCom College ERP{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f8f9fa; }
+        .header { background: #2c3e50; color: white; padding: 20px; }
+        .nav { background: #34495e; padding: 15px; }
+        .nav a { color: white; text-decoration: none; margin: 0 15px; padding: 10px 15px; border-radius: 5px; }
+        .nav a:hover { background: #1abc9c; }
+        .container { padding: 30px; max-width: 1200px; margin: 0 auto; }
+        .flash-messages { margin: 20px 0; }
+        .alert { padding: 12px; border-radius: 5px; margin: 10px 0; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>CretCom College ERP</h1>
+        <p>Welcome, {{ session.user_name }} ({{ session.user_role|title }})</p>
+    </div>
+    
+    <div class="nav">
+        {% block navigation %}
+            {% if session.user_role == 'principal' %}
+                <a href="/principal/dashboard">📊 Dashboard</a>
+                <a href="/principal/user-management">👥 User Management</a>
+                <a href="/principal/finance-management">💰 Finance</a>
+                <a href="/principal/department-management">🏫 Departments</a>
+                <a href="/principal/manage-blocks">🏢 Manage Blocks</a>
+                <a href="/principal/analytics">📈 Analytics</a>
+                <a href="/logout">🚪 Logout</a>
+            {% endif %}
+        {% endblock %}
+    </div>
+    
+    <div class="container">
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+        
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
