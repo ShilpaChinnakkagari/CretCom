@@ -2,12 +2,14 @@ from flask import Flask, render_template, request, session, redirect, flash, jso
 from principal.routes import principal_bp
 from admin.routes import admin_bp
 from config import get_db_connection
+from hod.routes import hod_bp
 
 app = Flask(__name__)
 app.secret_key = 'cretcom-college-erp-2024'
 
 app.register_blueprint(principal_bp)
 app.register_blueprint(admin_bp)
+app.register_blueprint(hod_bp)
 
 @app.route('/')
 def home():
@@ -29,6 +31,7 @@ def login():
             session['user_id'] = user['username']
             session['user_role'] = user['role']
             session['user_name'] = user['name']
+            session['user_department'] = user.get('department', '')
             
             # Check if password needs to be changed
             password_changed = user.get('password_changed', False)
@@ -45,6 +48,8 @@ def login():
             # REDIRECT BASED ON ROLE
             if user['role'] == 'principal':
                 return redirect('/principal/dashboard')
+            elif user['role'] == 'hod':
+                return redirect('/hod/dashboard')
             elif user['role'] in ['administration_admin', 'college_admin', 'fee_admin', 'placement_admin', 'exam_admin', 'library_admin']:
                 return redirect('/admin/dashboard')
             else:
@@ -89,6 +94,8 @@ def change_password():
         # Redirect to appropriate dashboard
         if session.get('user_role') == 'principal':
             return redirect('/principal/dashboard')
+        elif session.get('user_role') == 'hod':
+            return redirect('/hod/dashboard')
         else:
             return redirect('/admin/dashboard')
     

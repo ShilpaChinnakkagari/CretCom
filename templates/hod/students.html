@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Students - CretCom{% endblock %}
+
+{% block navigation %}
+    {% if session.user_role == 'hod' %}
+        <a href="/hod/dashboard">📊 Dashboard</a>
+        <a href="/hod/faculty">👨‍🏫 Faculty</a>
+        <a href="/hod/students">🎓 Students</a>
+        <a href="/logout">🚪 Logout</a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<h1>🎓 Manage Students - {{ department }}</h1>
+
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3>📋 Student List ({{ students|length }} students)</h3>
+    
+    {% if students %}
+    <div style="overflow-x: auto; margin-top: 20px;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #34495e; color: white;">
+                    <th style="padding: 12px; text-align: left;">Student ID</th>
+                    <th style="padding: 12px; text-align: left;">Name</th>
+                    <th style="padding: 12px; text-align: left;">Email</th>
+                    <th style="padding: 12px; text-align: left;">Phone</th>
+                    <th style="padding: 12px; text-align: left;">Admission Date</th>
+                    <th style="padding: 12px; text-align: center;">Status</th>
+                    <th style="padding: 12px; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr style="border-bottom: 1px solid #ecf0f1;">
+                    <td style="padding: 12px;"><strong>{{ student.student_id }}</strong></td>
+                    <td style="padding: 12px;">{{ student.name }}</td>
+                    <td style="padding: 12px;">{{ student.email }}</td>
+                    <td style="padding: 12px;">{{ student.phone or 'N/A' }}</td>
+                    <td style="padding: 12px;">{{ student.admission_date.strftime('%Y-%m-%d') if student.admission_date else 'N/A' }}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="background: {% if student.status == 'active' %}#27ae60{% else %}#e74c3c{% endif %}; 
+                                  color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
+                            {{ student.status|title }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                        <button onclick="viewStudentDetails('{{ student.student_id }}')" 
+                                style="padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                            👁️ View Details
+                        </button>
+                        {% if student.status == 'active' %}
+                        <button onclick="updateStudentStatus('{{ student.student_id }}', 'inactive')" 
+                                style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                            Deactivate
+                        </button>
+                        {% else %}
+                        <button onclick="updateStudentStatus('{{ student.student_id }}', 'active')" 
+                                style="padding: 6px 12px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                            Activate
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+        <div style="font-size: 48px; margin-bottom: 20px;">🎓</div>
+        <h4 style="color: #95a5a6;">No Students Found</h4>
+        <p>There are no students currently in your department.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Student Details Modal -->
+<div id="studentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 900px; max-height: 90vh; overflow-y: auto;">
+        <h3>👤 Student Complete Details</h3>
+        <div id="studentDetailsContainer">
+            <!-- Student details will be loaded here -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="closeStudentModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewStudentDetails(studentId) {
+    fetch('/hod/student-details/' + studentId)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const student = data.student;
+            
+            // Format date for display
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                return new Date(dateString).toLocaleDateString('en-IN');
+            };
+
+            const detailsHTML = `
+                <div style="max-height: 70vh; overflow-y: auto; padding: 10px;">
+                    <!-- Student Basic Information -->
+                    <div style="background: #e8f4fd; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #3498db;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">🎓 Student Basic Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                            <div><strong>Student ID:</strong><br>${student.student_id}</div>
+                            <div><strong>Full Name:</strong><br>${student.name}</div>
+                            <div><strong>Email:</strong><br>${student.email}</div>
+                            <div><strong>Phone:</strong><br>${student.phone || 'N/A'}</div>
+                            <div><strong>Date of Birth:</strong><br>${formatDate(student.date_of_birth)}</div>
+                            <div><strong>Gender:</strong><br>${student.gender || 'N/A'}</div>
+                            <div><strong>Blood Group:</strong><br>${student.blood_group || 'N/A'}</div>
+                            <div><strong>Caste:</strong><br>${student.caste || 'N/A'}</div>
+                            <div><strong>Status:</strong><br><span style="color: ${student.status === 'active' ? '#27ae60' : '#e74c3c'}; font-weight: bold;">${student.status.toUpperCase()}</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Academic Information -->
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f39c12;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📚 Academic Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Department:</strong><br>${student.department}</div>
+                            <div><strong>Admission Date:</strong><br>${formatDate(student.admission_date)}</div>
+                            <div><strong>Academic Year:</strong><br>${student.academic_year || 'N/A'}</div>
+                            <div><strong>Admission Quota:</strong><br>${student.admission_quota || 'N/A'}</div>
+                            <div><strong>Created By:</strong><br>${student.created_by || 'System'}</div>
+                            <div><strong>Created At:</strong><br>${formatDate(student.created_at)}</div>
+                            ${student.updated_at ? `<div><strong>Last Updated:</strong><br>${formatDate(student.updated_at)}</div>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Family Information -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #27ae60;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">👨‍👩‍👧‍👦 Family Information</h4>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <h5 style="color: #34495e; margin-bottom: 8px;">👨 Father's Details</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                                <div><strong>Name:</strong><br>${student.father_name || 'N/A'}</div>
+                                <div><strong>Phone:</strong><br>${student.father_phone || 'N/A'}</div>
+                                <div><strong>Occupation:</strong><br>${student.father_occupation || 'N/A'}</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 15px;">
+                            <h5 style="color: #34495e; margin-bottom: 8px;">👩 Mother's Details</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                                <div><strong>Name:</strong><br>${student.mother_name || 'N/A'}</div>
+                                <div><strong>Phone:</strong><br>${student.mother_phone || 'N/A'}</div>
+                                <div><strong>Occupation:</strong><br>${student.mother_occupation || 'N/A'}</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h5 style="color: #34495e; margin-bottom: 8px;">🏠 Guardian Details</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                                <div><strong>Name:</strong><br>${student.guardian_name || 'N/A'}</div>
+                                <div><strong>Phone:</strong><br>${student.guardian_phone || 'N/A'}</div>
+                                <div><strong>Relation:</strong><br>${student.guardian_relation || 'N/A'}</div>
+                            </div>
+                            ${student.guardian_address ? `
+                            <div style="margin-top: 10px;">
+                                <strong>Guardian Address:</strong><br>${student.guardian_address}
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Address Information -->
+                    <div style="background: #e8f6f3; padding: 20px; border-radius: 10px; border-left: 4px solid #1abc9c;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📍 Address Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                            <div><strong>Address:</strong><br>${student.address || 'N/A'}</div>
+                            <div><strong>City:</strong><br>${student.city || 'N/A'}</div>
+                            <div><strong>State:</strong><br>${student.state || 'N/A'}</div>
+                            <div><strong>Pincode:</strong><br>${student.pincode || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('studentDetailsContainer').innerHTML = detailsHTML;
+            document.getElementById('studentModal').style.display = 'flex';
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+}
+
+function closeStudentModal() {
+    document.getElementById('studentModal').style.display = 'none';
+}
+
+function updateStudentStatus(studentId, newStatus) {
+    if (confirm(`Are you sure you want to ${newStatus === 'active' ? 'activate' : 'deactivate'} this student?`)) {
+        fetch('/hod/update-student-status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                student_id: studentId,
+                status: newStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload();
+            } else {
+                alert('❌ ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('❌ Network error: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

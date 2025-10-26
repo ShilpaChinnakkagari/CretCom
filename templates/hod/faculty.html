@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Faculty - CretCom{% endblock %}
+
+{% block navigation %}
+    {% if session.user_role == 'hod' %}
+        <a href="/hod/dashboard">📊 Dashboard</a>
+        <a href="/hod/faculty">👨‍🏫 Faculty</a>
+        <a href="/hod/students">🎓 Students</a>
+        <a href="/logout">🚪 Logout</a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<h1>👨‍🏫 Manage Faculty - {{ department }}</h1>
+
+<!-- ADD FACULTY FORM -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">➕ Add New Faculty Member</h3>
+    <form id="addFacultyForm">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            
+            <!-- BASIC INFORMATION -->
+            <div>
+                <label>Full Name *:</label>
+                <input type="text" name="name" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Enter full name">
+            </div>
+            <div>
+                <label>Faculty ID *:</label>
+                <input type="text" name="username" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Auto-generated" readonly id="facultyId">
+            </div>
+            
+            <!-- CONTACT DETAILS -->
+            <div>
+                <label>Email Address *:</label>
+                <input type="email" name="email" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="faculty@college.edu">
+            </div>
+            <div>
+                <label>Phone Number *:</label>
+                <input type="text" name="phone" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="10-digit mobile number" pattern="[0-9]{10}">
+            </div>
+
+            <!-- PROFESSIONAL DETAILS -->
+            <div>
+                <label>Designation *:</label>
+                <select name="designation" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">Select Designation</option>
+                    <option value="Professor">Professor</option>
+                    <option value="Associate Professor">Associate Professor</option>
+                    <option value="Assistant Professor">Assistant Professor</option>
+                    <option value="Lecturer">Lecturer</option>
+                    <option value="Visiting Faculty">Visiting Faculty</option>
+                </select>
+            </div>
+            <div>
+                <label>Department *:</label>
+                <input type="text" name="department" value="{{ department }}" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" readonly>
+            </div>
+
+            <!-- SALARY & JOINING -->
+            <div>
+                <label>Monthly Salary (₹) *:</label>
+                <input type="number" name="salary" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="25000 - 80000" min="25000" max="100000">
+            </div>
+            <div>
+                <label>Date of Joining *:</label>
+                <input type="date" name="date_of_joining" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="dateOfJoining">
+            </div>
+
+            <!-- WORK LOCATION -->
+            <div>
+                <label>Work Location:</label>
+                <input type="text" name="location" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Block-Room Number">
+            </div>
+
+            <!-- IDENTIFICATION -->
+            <div>
+                <label>Aadhar Number *:</label>
+                <input type="text" name="aadhar_number" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="12-digit Aadhar number" pattern="[0-9]{12}">
+            </div>
+            <div>
+                <label>Graduation/Domain *:</label>
+                <select name="graduation_domain" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">Select Qualification</option>
+                    <option value="Ph.D">Ph.D</option>
+                    <option value="M.Tech">M.Tech</option>
+                    <option value="B.Tech">B.Tech</option>
+                    <option value="MBA">MBA</option>
+                    <option value="M.Com">M.Com</option>
+                    <option value="M.Sc">M.Sc</option>
+                    <option value="B.Sc">B.Sc</option>
+                    <option value="Post Graduation">Post Graduation</option>
+                    <option value="Graduation">Graduation</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" style="margin-top: 15px; padding: 12px 30px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+            🚀 Create Faculty Account
+        </button>
+    </form>
+</div>
+
+<!-- EXISTING FACULTY LIST -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin-top: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3>📋 Faculty Members ({{ faculty|length }} members)</h3>
+    
+    {% if faculty %}
+    <div style="overflow-x: auto; margin-top: 20px;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #34495e; color: white;">
+                    <th style="padding: 12px; text-align: left;">Faculty ID</th>
+                    <th style="padding: 12px; text-align: left;">Name</th>
+                    <th style="padding: 12px; text-align: left;">Designation</th>
+                    <th style="padding: 12px; text-align: left;">Email</th>
+                    <th style="padding: 12px; text-align: left;">Phone</th>
+                    <th style="padding: 12px; text-align: center;">Status</th>
+                    <th style="padding: 12px; text-align: left;">Joined Date</th>
+                    <th style="padding: 12px; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in faculty %}
+                <tr style="border-bottom: 1px solid #ecf0f1;">
+                    <td style="padding: 12px;"><strong>{{ member.username }}</strong></td>
+                    <td style="padding: 12px;">{{ member.name }}</td>
+                    <td style="padding: 12px;">{{ member.designation or 'N/A' }}</td>
+                    <td style="padding: 12px;">{{ member.email }}</td>
+                    <td style="padding: 12px;">{{ member.phone or 'N/A' }}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="background: {% if member.status == 'active' %}#27ae60{% else %}#e74c3c{% endif %}; 
+                                  color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
+                            {{ member.status|title }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">{{ member.created_at.strftime('%Y-%m-%d') if member.created_at else 'N/A' }}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <button onclick="viewFacultyDetails('{{ member.username }}')" 
+                                style="padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            👁️ View Details
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+        <div style="font-size: 48px; margin-bottom: 20px;">👨‍🏫</div>
+        <h4 style="color: #95a5a6;">No Faculty Members</h4>
+        <p>Start by adding your first faculty member using the form above.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Faculty Details Modal -->
+<div id="facultyModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto;">
+        <h3>👤 Faculty Complete Details</h3>
+        <div id="facultyDetailsContainer">
+            <!-- Faculty details will be loaded here -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="closeFacultyModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set today's date as default for date of joining
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('dateOfJoining').value = today;
+    generateFacultyID();
+});
+
+// Generate Faculty ID when name is entered
+document.querySelector('input[name="name"]').addEventListener('input', generateFacultyID);
+
+function generateFacultyID() {
+    const name = document.querySelector('input[name="name"]').value;
+    const department = '{{ department }}';
+    
+    if (name && department) {
+        const initials = name.split(' ').map(word => word[0].toUpperCase()).join('');
+        const deptCode = department.split(' ').map(word => word[0].toUpperCase()).join('').substring(0, 2);
+        const timestamp = new Date().getTime().toString().slice(-4);
+        const facultyID = `F${deptCode}${initials}${timestamp}`;
+        
+        document.getElementById('facultyId').value = facultyID;
+    }
+}
+
+// Add Faculty Form Submission
+document.getElementById('addFacultyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const facultyData = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        designation: formData.get('designation'),
+        department: formData.get('department'),
+        salary: parseFloat(formData.get('salary')),
+        date_of_joining: formData.get('date_of_joining'),
+        location: formData.get('location'),
+        aadhar_number: formData.get('aadhar_number'),
+        graduation_domain: formData.get('graduation_domain')
+    };
+    
+    // Show loading state
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '⏳ Creating Faculty...';
+    submitBtn.disabled = true;
+    
+    fetch('/hod/add-faculty', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(facultyData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ Faculty created successfully!\n\nFaculty ID: ${data.faculty_id}\nDefault Password: ${data.password}\n\nPlease share these credentials with the faculty member.`);
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+function viewFacultyDetails(username) {
+    fetch('/hod/faculty-details/' + username)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const faculty = data.faculty;
+            
+            // Format date for display
+            const formatDate = (dateString) => {
+                if (!dateString) return 'N/A';
+                return new Date(dateString).toLocaleDateString('en-IN');
+            };
+
+            const detailsHTML = `
+                <div style="max-height: 60vh; overflow-y: auto; padding: 10px;">
+                    <!-- Basic Information -->
+                    <div style="background: #e8f4fd; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">👤 Basic Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Faculty ID:</strong><br>${faculty.username}</div>
+                            <div><strong>Full Name:</strong><br>${faculty.name}</div>
+                            <div><strong>Email:</strong><br>${faculty.email}</div>
+                            <div><strong>Phone:</strong><br>${faculty.phone || 'N/A'}</div>
+                            <div><strong>Designation:</strong><br>${faculty.designation || 'N/A'}</div>
+                            <div><strong>Department:</strong><br>${faculty.department}</div>
+                        </div>
+                    </div>
+
+                    <!-- Professional Information -->
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">💼 Professional Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Status:</strong><br><span style="color: ${faculty.status === 'active' ? '#27ae60' : '#e74c3c'}">${faculty.status.toUpperCase()}</span></div>
+                            <div><strong>Date of Joining:</strong><br>${formatDate(faculty.date_of_joining)}</div>
+                            <div><strong>Salary:</strong><br>₹${faculty.salary}</div>
+                            <div><strong>Work Location:</strong><br>${faculty.location || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Qualifications & Identification -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">🎓 Qualifications & Identification</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Graduation Domain:</strong><br>${faculty.graduation_domain}</div>
+                            <div><strong>Aadhar Number:</strong><br>${faculty.aadhar_number}</div>
+                        </div>
+                    </div>
+
+                    <!-- System Information -->
+                    <div style="background: #e8f6f3; padding: 20px; border-radius: 10px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📅 System Information</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div><strong>Created At:</strong><br>${formatDate(faculty.created_at)}</div>
+                            <div><strong>Created By:</strong><br>${faculty.created_by || 'System'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('facultyDetailsContainer').innerHTML = detailsHTML;
+            document.getElementById('facultyModal').style.display = 'flex';
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+}
+
+function closeFacultyModal() {
+    document.getElementById('facultyModal').style.display = 'none';
+}
+</script>
+{% endblock %}
