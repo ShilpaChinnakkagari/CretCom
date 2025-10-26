@@ -633,4 +633,114 @@ function editAoDetails(aoId) {
                                 </div>
                                 <div>
                                     <label>Graduation Domain *:</label>
-                                    <select name="graduation_domain"
+                                    <select name="graduation_domain" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        <option value="">Select Qualification</option>
+                                        <option value="MBA" ${ao.graduation_domain === 'MBA' ? 'selected' : ''}>MBA</option>
+                                        <option value="M.Com" ${ao.graduation_domain === 'M.Com' ? 'selected' : ''}>M.Com</option>
+                                        <option value="B.Com" ${ao.graduation_domain === 'B.Com' ? 'selected' : ''}>B.Com</option>
+                                        <option value="BBA" ${ao.graduation_domain === 'BBA' ? 'selected' : ''}>BBA</option>
+                                        <option value="M.Sc" ${ao.graduation_domain === 'M.Sc' ? 'selected' : ''}>M.Sc</option>
+                                        <option value="B.Sc" ${ao.graduation_domain === 'B.Sc' ? 'selected' : ''}>B.Sc</option>
+                                        <option value="Post Graduation" ${ao.graduation_domain === 'Post Graduation' ? 'selected' : ''}>Post Graduation</option>
+                                        <option value="Graduation" ${ao.graduation_domain === 'Graduation' ? 'selected' : ''}>Graduation</option>
+                                        <option value="Diploma" ${ao.graduation_domain === 'Diploma' ? 'selected' : ''}>Diploma</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label>Caste:</label>
+                                    <input type="text" name="caste" value="${ao.caste || ''}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Address Information -->
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h4 style="color: #34495e; margin-bottom: 15px;">📍 Address Information</h4>
+                            <div>
+                                <label>Address:</label>
+                                <textarea name="address" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; height: 80px;">${ao.address || ''}</textarea>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            `;
+            
+            document.getElementById('editAoFormContainer').innerHTML = editForm;
+            document.getElementById('editAoModal').style.display = 'flex';
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    });
+}
+
+function closeAoModal() {
+    document.getElementById('aoModal').style.display = 'none';
+}
+
+function closeEditAoModal() {
+    document.getElementById('editAoModal').style.display = 'none';
+    currentEditAoId = null;
+}
+
+function saveAoChanges() {
+    const formData = new FormData(document.getElementById('editAoForm'));
+    const aoData = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        salary: parseFloat(formData.get('salary')),
+        date_of_joining: formData.get('date_of_joining'),
+        work_location: formData.get('work_location'),
+        aadhar_number: formData.get('aadhar_number'),
+        graduation_domain: formData.get('graduation_domain'),
+        caste: formData.get('caste'),
+        address: formData.get('address')
+    };
+    
+    fetch('/hod/update-ao/' + currentEditAoId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(aoData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ AO Staff details updated successfully!');
+            closeEditAoModal();
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+}
+
+function updateAoStatus(aoId, newStatus) {
+    if (confirm(`Are you sure you want to ${newStatus === 'active' ? 'activate' : 'deactivate'} this AO staff?`)) {
+        fetch('/hod/update-ao-status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                ao_id: aoId,
+                status: newStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload();
+            } else {
+                alert('❌ ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('❌ Network error: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}
