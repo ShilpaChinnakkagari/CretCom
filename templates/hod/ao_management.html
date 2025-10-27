@@ -101,12 +101,12 @@
 
 <!-- TASK ASSIGNMENT SECTION -->
 <div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-    <h3 style="color: #2c3e50; border-bottom: 2px solid #e67e22; padding-bottom: 10px;">📋 Assign Tasks to AO Staff</h3>
+    <h3 style="color: #2c3e50; border-bottom: 2px solid #e67e22; padding-bottom: 10px;">📋 Task Management</h3>
     
     <!-- Task Assignment Form -->
     <div style="background: #fffbf0; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #e67e22;">
         <h4 style="color: #2c3e50; margin-bottom: 15px;">➕ Assign New Task</h4>
-        <form id="assignTaskForm">
+        <form id="assignTaskForm" enctype="multipart/form-data">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div>
                     <label>Select AO Staff *:</label>
@@ -140,6 +140,12 @@
                     <label>Deadline:</label>
                     <input type="date" name="deadline" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
                 </div>
+                <div style="grid-column: span 2;">
+                    <label>Supporting Document (Optional):</label>
+                    <input type="file" name="document" id="taskDocument" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <small style="color: #7f8c8d;">Max file size: 10MB | Supported formats: PDF, DOC, DOCX, TXT, JPG, JPEG, PNG</small>
+                    <div id="fileValidation" style="margin-top: 5px; font-size: 0.9em;"></div>
+                </div>
             </div>
 
             <button type="submit" style="margin-top: 15px; padding: 12px 30px; background: #e67e22; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
@@ -150,7 +156,7 @@
 
     <!-- Assigned Tasks List -->
     <div style="margin-top: 20px;">
-        <h4 style="color: #2c3e50; margin-bottom: 15px;">📝 Assigned Tasks</h4>
+        <h4 style="color: #2c3e50; margin-bottom: 15px;">📝 Assigned Tasks ({{ assigned_tasks|length }})</h4>
         {% if assigned_tasks %}
         <div style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse;">
@@ -180,6 +186,10 @@
                             <button onclick="viewTaskDetails('{{ task.task_id }}')" 
                                     style="padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
                                 👁️ View
+                            </button>
+                            <button onclick="editTask('{{ task.task_id }}')" 
+                                    style="padding: 6px 12px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                                ✏️ Edit
                             </button>
                             <button onclick="deleteTask('{{ task.task_id }}')" 
                                     style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
@@ -268,6 +278,8 @@
     {% endif %}
 </div>
 
+<!-- MODALS SECTION -->
+
 <!-- Task Details Modal -->
 <div id="taskModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
     <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
@@ -283,22 +295,138 @@
     </div>
 </div>
 
-<!-- Existing AO Modals (keep your existing AO modals) -->
-<div id="aoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-    <!-- ... your existing AO modal code ... -->
+<!-- Task Edit Modal -->
+<div id="editTaskModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto;">
+        <h3>✏️ Edit Task</h3>
+        <form id="editTaskForm" enctype="multipart/form-data">
+            <input type="hidden" name="task_id" id="editTaskId">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div>
+                    <label>Assigned AO *:</label>
+                    <select name="ao_id" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="editAoSelect">
+                        <option value="">Select AO Staff</option>
+                        {% for ao in ao_staff %}
+                            {% if ao.status == 'active' %}
+                                <option value="{{ ao.ao_id }}">{{ ao.name }} ({{ ao.ao_id }})</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Status:</label>
+                    <select name="status" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="editTaskStatus">
+                        <option value="pending">🔴 Pending</option>
+                        <option value="in_progress">🟡 In Progress</option>
+                        <option value="completed">🟢 Completed</option>
+                        <option value="cancelled">⚫ Cancelled</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Subject *:</label>
+                    <input type="text" name="subject" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="editTaskSubject">
+                </div>
+                <div>
+                    <label>Priority:</label>
+                    <select name="priority" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="editTaskPriority">
+                        <option value="low">🟢 Low</option>
+                        <option value="medium">🟡 Medium</option>
+                        <option value="high">🟠 High</option>
+                        <option value="urgent">🔴 Urgent</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Deadline:</label>
+                    <input type="date" name="deadline" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="editTaskDeadline">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label>Task Description *:</label>
+                <textarea name="task_description" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; height: 120px;" id="editTaskDescription"></textarea>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label>Remarks/Updates:</label>
+                <textarea name="remarks" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; height: 80px;" placeholder="Add any updates or remarks..." id="editTaskRemarks"></textarea>
+            </div>
+            
+            <!-- Document Management Section -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin-bottom: 15px;">📎 Document Management</h4>
+                <div id="currentDocument" style="margin-bottom: 15px;">
+                    <!-- Current document info will be loaded here -->
+                </div>
+                <div>
+                    <label>Update Document:</label>
+                    <input type="file" name="document" id="editTaskDocument" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px;">
+                    <small style="color: #7f8c8d;">Max file size: 10MB | New file will replace existing one</small>
+                    <div id="editFileValidation" style="margin-top: 5px; font-size: 0.9em;"></div>
+                </div>
+                <div id="removeDocumentOption" style="margin-top: 10px; display: none;">
+                    <label>
+                        <input type="checkbox" name="remove_document" value="true" id="removeDocumentCheckbox">
+                        Remove current document
+                    </label>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeEditTaskModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    Cancel
+                </button>
+                <button type="submit" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    💾 Update Task
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
+<!-- AO Details Modal -->
+<div id="aoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+        <h3>👤 AO Staff Details</h3>
+        <div id="aoDetailsContainer">
+            <!-- AO details will be loaded here -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="closeAoModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit AO Modal -->
 <div id="editAoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-    <!-- ... your existing Edit AO modal code ... -->
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+        <h3>✏️ Edit AO Staff</h3>
+        <div id="editAoFormContainer">
+            <!-- Edit form will be loaded here -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="closeEditAoModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">
+                Cancel
+            </button>
+            <button onclick="saveAoChanges()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                💾 Save Changes
+            </button>
+        </div>
+    </div>
 </div>
 
 <script>
-// Set today's date as default for date of joining
+// ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', function() {
+    // Set today's date as default for date of joining
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('aoDateOfJoining').value = today;
     generateAoID();
 });
+
+// ========== AO MANAGEMENT FUNCTIONS ==========
 
 // Generate AO ID when name is entered
 document.querySelector('input[name="name"]').addEventListener('input', generateAoID);
@@ -350,7 +478,7 @@ document.getElementById('addAoForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(`✅ Administrative Officer created successfully!\n\nAO ID: ${data.ao_id}\nUsername: ${data.ao_id.toLowerCase()}\nPassword: ao123456`);
+            alert(`✅ Administrative Officer created successfully!\n\nAO ID: ${data.ao_id}`);
             location.reload();
         } else {
             alert('❌ Error: ' + data.message);
@@ -364,43 +492,85 @@ document.getElementById('addAoForm').addEventListener('submit', function(e) {
         submitBtn.disabled = false;
     });
 });
+
+// ========== TASK MANAGEMENT FUNCTIONS ==========
+
+// File validation for task assignment
+document.getElementById('taskDocument').addEventListener('change', function(e) {
+    validateFile(e.target, 'fileValidation');
+});
+
+// File validation for task editing
+document.getElementById('editTaskDocument').addEventListener('change', function(e) {
+    validateFile(e.target, 'editFileValidation');
+});
+
+function validateFile(fileInput, validationDivId) {
+    const file = fileInput.files[0];
+    const validationDiv = document.getElementById(validationDivId);
+    
+    if (file) {
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            validationDiv.innerHTML = '❌ File size exceeds 10MB limit';
+            validationDiv.style.color = '#e74c3c';
+            fileInput.value = '';
+            return;
+        }
+        
+        // Check file type
+        const allowedTypes = ['pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png'];
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        
+        if (!allowedTypes.includes(fileExtension)) {
+            validationDiv.innerHTML = '❌ File type not allowed';
+            validationDiv.style.color = '#e74c3c';
+            fileInput.value = '';
+            return;
+        }
+        
+        validationDiv.innerHTML = `✅ ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        validationDiv.style.color = '#27ae60';
+    } else {
+        validationDiv.innerHTML = '';
+    }
+}
 
 // Task Assignment Form Submission
 document.getElementById('assignTaskForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
     const formData = new FormData(this);
-    const taskData = {
-        ao_id: formData.get('ao_id'),
-        subject: formData.get('subject'),
-        task_description: formData.get('task_description'),
-        priority: formData.get('priority'),
-        deadline: formData.get('deadline') || null
-    };
-    
-    // Show loading state
     const submitBtn = this.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
+    
+    // Show loading state
     submitBtn.innerHTML = '⏳ Assigning Task...';
     submitBtn.disabled = true;
     
-    fetch('/hod/assign-task', {
+    fetch('/hod/assign-task-to-ao', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(taskData)
+        body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             alert('✅ Task assigned successfully!');
             this.reset();
+            document.getElementById('fileValidation').innerHTML = '';
             location.reload();
         } else {
-            alert('❌ Error: ' + data.message);
+            throw new Error(data.message || 'Unknown error occurred');
         }
     })
     .catch(error => {
-        alert('❌ Network error: ' + error);
+        console.error('Error:', error);
+        alert(`❌ Error: ${error.message}`);
     })
     .finally(() => {
         submitBtn.innerHTML = originalText;
@@ -408,7 +578,50 @@ document.getElementById('assignTaskForm').addEventListener('submit', function(e)
     });
 });
 
-// View Task Details
+// Task Edit Form Submission
+document.getElementById('editTaskForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading state
+    submitBtn.innerHTML = '⏳ Updating Task...';
+    submitBtn.disabled = true;
+    
+    fetch('/hod/update-task/' + currentEditTaskId, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            alert('✅ Task updated successfully!');
+            closeEditTaskModal();
+            location.reload();
+        } else {
+            throw new Error(data.message || 'Unknown error occurred');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(`❌ Error: ${error.message}`);
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// ========== TASK OPERATIONS ==========
+let currentEditTaskId = null;
+
 function viewTaskDetails(taskId) {
     fetch('/hod/get-task-details/' + taskId)
     .then(response => response.json())
@@ -442,8 +655,22 @@ function viewTaskDetails(taskId) {
                         <p style="white-space: pre-wrap;">${task.task_description}</p>
                     </div>
 
-                    <!-- Task Progress -->
+                    <!-- Document Information -->
                     <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📎 Attached Document</h4>
+                        ${task.document_path ? `
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>${task.document_path.split('/').pop().replace(`${task.task_id}_`, '')}</span>
+                                <button onclick="downloadTaskDocument('${task.task_id}')" 
+                                        style="padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                    📥 Download
+                                </button>
+                            </div>
+                        ` : '<p>No document attached</p>'}
+                    </div>
+
+                    <!-- Task Progress -->
+                    <div style="background: #e8f6f3; padding: 20px; border-radius: 10px;">
                         <h4 style="color: #2c3e50; margin-bottom: 15px;">📊 Task Progress</h4>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div><strong>Assigned Date:</strong><br>${formatDate(task.created_at)}</div>
@@ -465,7 +692,95 @@ function viewTaskDetails(taskId) {
     });
 }
 
-// Delete Task
+function editTask(taskId) {
+    currentEditTaskId = taskId;
+    
+    fetch('/hod/get-task-details/' + taskId)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const task = data.task;
+            
+            // Populate form fields
+            document.getElementById('editTaskId').value = task.task_id;
+            document.getElementById('editAoSelect').value = task.ao_id;
+            document.getElementById('editTaskSubject').value = task.subject;
+            document.getElementById('editTaskDescription').value = task.task_description;
+            document.getElementById('editTaskPriority').value = task.priority;
+            document.getElementById('editTaskStatus').value = task.status;
+            document.getElementById('editTaskRemarks').value = task.remarks || '';
+            
+            if (task.deadline) {
+                const deadlineDate = new Date(task.deadline).toISOString().split('T')[0];
+                document.getElementById('editTaskDeadline').value = deadlineDate;
+            }
+            
+            // Handle document display
+            const currentDocumentDiv = document.getElementById('currentDocument');
+            const removeDocumentOption = document.getElementById('removeDocumentOption');
+            
+            if (task.document_path) {
+                const fileName = task.document_path.split('/').pop().replace(`${task.task_id}_`, '');
+                currentDocumentDiv.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #e8f4fd; padding: 10px; border-radius: 5px;">
+                        <div>
+                            <strong>Current Document:</strong> ${fileName}
+                        </div>
+                        <div>
+                            <button type="button" onclick="downloadTaskDocument('${task.task_id}')" 
+                                    style="padding: 4px 8px; background: #3498db; color: white; border: none; border-radius: 3px; font-size: 11px; cursor: pointer; margin-right: 5px;">
+                                📥 Download
+                            </button>
+                            <button type="button" onclick="removeTaskDocument('${task.task_id}')" 
+                                    style="padding: 4px 8px; background: #e74c3c; color: white; border: none; border-radius: 3px; font-size: 11px; cursor: pointer;">
+                                🗑️ Remove
+                            </button>
+                        </div>
+                    </div>
+                `;
+                removeDocumentOption.style.display = 'block';
+            } else {
+                currentDocumentDiv.innerHTML = '<p>No document attached</p>';
+                removeDocumentOption.style.display = 'none';
+            }
+            
+            document.getElementById('editTaskModal').style.display = 'flex';
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+}
+
+function removeTaskDocument(taskId) {
+    if (confirm('Are you sure you want to remove this document? This action cannot be undone.')) {
+        fetch('/hod/remove-task-document/' + taskId, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Document removed successfully!');
+                // Update the UI
+                document.getElementById('currentDocument').innerHTML = '<p>No document attached</p>';
+                document.getElementById('removeDocumentOption').style.display = 'none';
+                document.getElementById('removeDocumentCheckbox').checked = false;
+            } else {
+                alert('❌ Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('❌ Network error: ' + error);
+        });
+    }
+}
+
+function downloadTaskDocument(taskId) {
+    window.open('/hod/download-task-document/' + taskId, '_blank');
+}
+
 function deleteTask(taskId) {
     if (confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
         fetch('/hod/delete-task/' + taskId, {
@@ -486,11 +801,27 @@ function deleteTask(taskId) {
     }
 }
 
+// ========== MODAL CONTROLS ==========
 function closeTaskModal() {
     document.getElementById('taskModal').style.display = 'none';
 }
 
-// Your existing AO functions (viewAoDetails, editAoDetails, etc.) remain the same
+function closeEditTaskModal() {
+    document.getElementById('editTaskModal').style.display = 'none';
+    currentEditTaskId = null;
+    document.getElementById('editFileValidation').innerHTML = '';
+}
+
+function closeAoModal() {
+    document.getElementById('aoModal').style.display = 'none';
+}
+
+function closeEditAoModal() {
+    document.getElementById('editAoModal').style.display = 'none';
+    currentEditAoId = null;
+}
+
+// ========== AO OPERATIONS ==========
 let currentEditAoId = null;
 
 function viewAoDetails(aoId) {
@@ -672,15 +1003,6 @@ function editAoDetails(aoId) {
             alert('❌ Error: ' + data.message);
         }
     });
-}
-
-function closeAoModal() {
-    document.getElementById('aoModal').style.display = 'none';
-}
-
-function closeEditAoModal() {
-    document.getElementById('editAoModal').style.display = 'none';
-    currentEditAoId = null;
 }
 
 function saveAoChanges() {

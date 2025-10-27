@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Filter Students - CretCom{% endblock %}
+
+{% block navigation %}
+    {% if session.user_role == 'hod' %}
+        <a href="/hod/dashboard">📊 Dashboard</a>
+        <a href="/hod/faculty">👨‍🏫 Faculty</a>
+        <a href="/hod/students">🎓 Students</a>
+        <a href="/hod/filter-students">🔍 Filter Students</a>
+        <a href="/hod/sections">🏫 Sections</a>
+        <a href="/hod/ao-management">👨‍💼 AO Management</a>
+        <a href="/logout">🚪 Logout</a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<h1>🔍 Filter Students - {{ department }}</h1>
+
+<!-- Filter Form -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3>🎯 Filter Criteria</h3>
+    <form method="GET" id="filterForm">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <!-- Batch Year -->
+            <div>
+                <label>Batch Year:</label>
+                <select name="batch_year" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">All Batches</option>
+                    {% for batch in batch_years %}
+                        <option value="{{ batch }}" {% if current_filters.batch_year == batch %}selected{% endif %}>{{ batch }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Year of Study -->
+            <div>
+                <label>Current Year:</label>
+                <select name="year_of_study" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">All Years</option>
+                    {% for year in year_options %}
+                        <option value="{{ year }}" {% if current_filters.year_of_study == year %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Gender -->
+            <div>
+                <label>Gender:</label>
+                <select name="gender" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">All Genders</option>
+                    {% for gender in genders %}
+                        <option value="{{ gender }}" {% if current_filters.gender == gender %}selected{% endif %}>{{ gender }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Section -->
+            <div>
+                <label>Section:</label>
+                <select name="section_id" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">All Sections</option>
+                    {% for section in sections %}
+                        <option value="{{ section.section_id }}" {% if current_filters.section_id == section.section_id %}selected{% endif %}>{{ section.section_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Management -->
+            <div>
+                <label>Management:</label>
+                <select name="management" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">All Types</option>
+                    {% for mgmt in managements %}
+                        <option value="{{ mgmt }}" {% if current_filters.management == mgmt %}selected{% endif %}>{{ mgmt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Admission Quota -->
+            <div>
+                <label>Admission Quota:</label>
+                <select name="admission_quota" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">All Quotas</option>
+                    {% for quota in admission_quotas %}
+                        <option value="{{ quota }}" {% if current_filters.admission_quota == quota %}selected{% endif %}>{{ quota }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button type="submit" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                🔍 Apply Filters
+            </button>
+            <a href="/hod/filter-students" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; text-decoration: none;">
+                🗑️ Clear Filters
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Results -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3>📊 Filter Results ({{ students|length }} students)</h3>
+    
+    {% if students %}
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #34495e; color: white;">
+                    <th style="padding: 12px; text-align: left;">Student ID</th>
+                    <th style="padding: 12px; text-align: left;">Name</th>
+                    <th style="padding: 12px; text-align: left;">Batch</th>
+                    <th style="padding: 12px; text-align: left;">Current Year</th>
+                    <th style="padding: 12px; text-align: left;">Gender</th>
+                    <th style="padding: 12px; text-align: left;">Section</th>
+                    <th style="padding: 12px; text-align: left;">Mentor</th>
+                    <th style="padding: 12px; text-align: left;">Management</th>
+                    <th style="padding: 12px; text-align: left;">Quota</th>
+                    <th style="padding: 12px; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr style="border-bottom: 1px solid #ecf0f1;">
+                    <td style="padding: 12px;"><strong>{{ student.student_id }}</strong></td>
+                    <td style="padding: 12px;">{{ student.name }}</td>
+                    <td style="padding: 12px;">{{ student.batch_year }}</td>
+                    <td style="padding: 12px;">
+                        <span style="background: 
+                            {% if student.calculated_year == '1st Year' %}#27ae60
+                            {% elif student.calculated_year == '2nd Year' %}#3498db
+                            {% elif student.calculated_year == '3rd Year' %}#f39c12
+                            {% elif student.calculated_year == '4th Year' %}#e74c3c
+                            {% elif student.calculated_year == 'Graduated' %}#9b59b6
+                            {% else %}#95a5a6{% endif %}; 
+                            color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
+                            {{ student.calculated_year }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">{{ student.gender or 'N/A' }}</td>
+                    <td style="padding: 12px;">{{ student.section_name or 'Not Assigned' }}</td>
+                    <td style="padding: 12px;">{{ student.mentor_name or 'Not Assigned' }}</td>
+                    <td style="padding: 12px;">{{ student.management or 'Regular' }}</td>
+                    <td style="padding: 12px;">{{ student.admission_quota or 'N/A' }}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <button onclick="viewStudentDetails('{{ student.student_id }}')" 
+                                style="padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                            👁️ View
+                        </button>
+                        <button onclick="editStudentSection('{{ student.student_id }}')" 
+                                style="padding: 6px 12px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                            ✏️ Edit
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+        <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
+        <h4 style="color: #95a5a6;">No Students Found</h4>
+        <p>Try adjusting your filter criteria.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Edit Student Section Modal -->
+<div id="editSectionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px;">
+        <h3>✏️ Edit Student Section & Mentor</h3>
+        <div id="editSectionFormContainer">
+            <!-- Form will be loaded here -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="closeEditSectionModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">
+                Cancel
+            </button>
+            <button onclick="saveSectionChanges()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentEditStudentId = null;
+
+function editStudentSection(studentId) {
+    currentEditStudentId = studentId;
+    
+    const formHTML = `
+        <form id="editSectionForm">
+            <div style="margin-bottom: 15px;">
+                <label>Section:</label>
+                <select name="section_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">No Section</option>
+                    {% for section in sections %}
+                        <option value="{{ section.section_id }}">{{ section.section_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Mentor:</label>
+                <select name="mentor_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">No Mentor</option>
+                </select>
+            </div>
+        </form>
+    `;
+    
+    document.getElementById('editSectionFormContainer').innerHTML = formHTML;
+    document.getElementById('editSectionModal').style.display = 'flex';
+}
+
+function closeEditSectionModal() {
+    document.getElementById('editSectionModal').style.display = 'none';
+    currentEditStudentId = null;
+}
+
+function saveSectionChanges() {
+    const formData = new FormData(document.getElementById('editSectionForm'));
+    const sectionData = {
+        student_id: currentEditStudentId,
+        section_id: formData.get('section_id'),
+        mentor_id: formData.get('mentor_id')
+    };
+    
+    fetch('/hod/update-student-section', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(sectionData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Student section updated successfully!');
+            closeEditSectionModal();
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+}
+
+function viewStudentDetails(studentId) {
+    alert('View student details for: ' + studentId);
+}
+</script>
+{% endblock %}

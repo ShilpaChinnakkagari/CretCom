@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}AO Login - CretCom{% endblock %}
+
+{% block content %}
+<div style="max-width: 400px; margin: 100px auto; padding: 20px;">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1>👨‍💼 AO Login</h1>
+        <p>Administrative Officer Portal</p>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div style="padding: 10px; background: {% if category == 'error' %}#f8d7da{% else %}#d1edff{% endif %}; 
+                          color: {% if category == 'error' %}#721c24{% else %}#004085{% endif %}; 
+                          border-radius: 5px; margin-bottom: 15px;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <form method="POST" style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="margin-bottom: 15px;">
+            <label>Username:</label>
+            <input type="text" name="username" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label>Password:</label>
+            <input type="password" name="password" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+        </div>
+        
+        <button type="submit" style="width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            Login
+        </button>
+    </form>
+    
+    <div style="text-align: center; margin-top: 20px;">
+        <p>Default password: <strong>ao123456</strong></p>
+    </div>
+</div>
+{% endblock %}

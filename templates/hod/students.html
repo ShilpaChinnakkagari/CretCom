@@ -7,6 +7,9 @@
         <a href="/hod/dashboard">📊 Dashboard</a>
         <a href="/hod/faculty">👨‍🏫 Faculty</a>
         <a href="/hod/students">🎓 Students</a>
+        <a href="/hod/filter-students">🔍 Filter Students</a>
+        <a href="/hod/sections">🏫 Sections</a>
+        <a href="/hod/ao-management">👨‍💼 AO Management</a>
         <a href="/logout">🚪 Logout</a>
     {% endif %}
 {% endblock %}
@@ -163,7 +166,7 @@ function viewStudentDetails(studentId) {
                             <h5 style="color: #34495e; margin-bottom: 8px;">🏠 Guardian Details</h5>
                             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                                 <div><strong>Name:</strong><br>${student.guardian_name || 'N/A'}</div>
-                                <div><strong>Phone:</strong><br>${student.guardian_phone || 'N/A'}</div>
+                                <div><strong>Phone:</strong><br>${student.guardian_phone || 'N/A'}}</div>
                                 <div><strong>Relation:</strong><br>${student.guardian_relation || 'N/A'}</div>
                             </div>
                             ${student.guardian_address ? `
