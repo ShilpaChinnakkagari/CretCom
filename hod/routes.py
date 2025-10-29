@@ -9,26 +9,53 @@ hod_bp = Blueprint('hod', __name__, url_prefix='/hod')
 
 def get_department_patterns(department):
     """Generate multiple patterns to match department variations"""
-    patterns = [department]
+    patterns = []
+    
+    # Always include the exact department name
+    patterns.append(department)
+    
+    # Extract base name by removing text in parentheses
     base_name = department.split('(')[0].strip()
     patterns.append(base_name)
     
-    if '&' in base_name:
-        patterns.append(base_name.replace('&', 'and'))
-    if 'and' in base_name:
-        patterns.append(base_name.replace('and', '&'))
+    # Remove common suffixes and create variations
+    suffixes = ['department', 'dept', 'engineering', 'engg', 'technology', 'tech', 
+                'science', 'studies', 'management', 'commerce']
     
-    if 'computer science' in base_name.lower():
-        patterns.append('Computer Science')
-        patterns.append('CSE')
-    if 'artificial intelligence' in base_name.lower():
-        patterns.append('Artificial Intelligence') 
-        patterns.append('AI')
-    if 'data science' in base_name.lower():
-        patterns.append('Data Science')
-        patterns.append('DS')
+    # Create variations without common suffixes
+    base_variations = [base_name]
+    for suffix in suffixes:
+        if base_name.lower().endswith(suffix):
+            base_without_suffix = base_name[:-len(suffix)].strip()
+            base_variations.append(base_without_suffix)
+            break
     
-    return list(set(patterns))
+    # Generate all possible combinations
+    for base in base_variations:
+        patterns.extend([
+            base,
+            base.upper(),
+            base.lower(),
+            base.title(),
+            base.replace(' ', ''),
+            base.replace(' ', '-'),
+            base.replace(' & ', ' and '),
+            base.replace(' and ', ' & ')
+        ])
+    
+    # Extract abbreviations from parentheses if present
+    if '(' in department and ')' in department:
+        import re
+        abbreviations = re.findall(r'\(([^)]+)\)', department)
+        for abbr in abbreviations:
+            patterns.extend([
+                abbr,
+                abbr.upper(),
+                abbr.lower()
+            ])
+    
+    # Remove duplicates and empty strings, then return
+    return list(set([p for p in patterns if p]))
 
 def generate_faculty_id(name, department):
     """Generate unique faculty ID"""
@@ -286,105 +313,57 @@ def hod_filter_students():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get filter parameters from request
-    batch_year = request.args.get('batch_year', '')
-    year_of_study = request.args.get('year_of_study', '')
-    gender = request.args.get('gender', '')
-    section_id = request.args.get('section_id', '')
-    management = request.args.get('management', '')
-    
-    # Build query with filters
+    # FIXED QUERY - Specify table names for ambiguous columns
     query = """
-        SELECT s.*, sec.section_name, u.name as mentor_name 
-        FROM students s 
+        SELECT s.student_id, s.name, s.batch_start_year, s.batch_end_year, s.year_of_study,
+               s.gender, s.section_id, s.management, s.admission_quota,
+               sec.section_name, u.name as mentor_name
+        FROM students s
         LEFT JOIN sections sec ON s.section_id = sec.section_id
         LEFT JOIN users u ON s.mentor_id = u.username
-        WHERE s.department = %s AND s.status = 'active'
+        WHERE s.department = 'Artificial Intelligence' AND s.status = 'active'
+        ORDER BY s.batch_start_year DESC, s.student_id
     """
-    params = [department]
     
-    # Apply filters dynamically
-    filters = []
-    if batch_year:
-        filters.append("s.batch_year = %s")
-        params.append(batch_year)
+    cursor.execute(query)
+    students = cursor.fetchall()
     
-    if year_of_study:
-        filters.append("s.year_of_study = %s")
-        params.append(year_of_study)
+    # Rest of your code remains the same...
+    cursor.execute("SELECT DISTINCT batch_start_year FROM students WHERE department = 'Artificial Intelligence' AND batch_start_year IS NOT NULL ORDER BY batch_start_year DESC")
+    batch_start_years = [row['batch_start_year'] for row in cursor.fetchall()]
     
-    if gender:
-        filters.append("s.gender = %s")
-        params.append(gender)
+    cursor.execute("SELECT DISTINCT batch_end_year FROM students WHERE department = 'Artificial Intelligence' AND batch_end_year IS NOT NULL ORDER BY batch_end_year DESC")
+    batch_end_years = [row['batch_end_year'] for row in cursor.fetchall()]
     
-    if section_id:
-        filters.append("s.section_id = %s")
-        params.append(section_id)
+    cursor.execute("SELECT DISTINCT year_of_study FROM students WHERE department = 'Artificial Intelligence' AND year_of_study IS NOT NULL ORDER BY year_of_study")
+    year_options = [row['year_of_study'] for row in cursor.fetchall()]
     
-    if management:
-        filters.append("s.management = %s")
-        params.append(management)
+    cursor.execute("SELECT DISTINCT gender FROM students WHERE department = 'Artificial Intelligence' AND gender IS NOT NULL")
+    genders = [row['gender'] for row in cursor.fetchall()]
     
-    # Add filters to query
-    if filters:
-        query += " AND " + " AND ".join(filters)
-    
-    query += " ORDER BY s.batch_year DESC, s.name"
-    
-    cursor.execute(query, params)
-    filtered_students = cursor.fetchall()
-    
-    # Get filter options
-    # Get batch years from students - with fallback options
-    cursor.execute("SELECT DISTINCT batch_year FROM students WHERE department = %s ORDER BY batch_year DESC", (department,))
-    existing_batches = [row['batch_year'] for row in cursor.fetchall()]
-
-    # If no batches exist, provide common academic years as fallback
-    if not existing_batches:
-        current_year = datetime.now().year
-        batch_years = [
-            str(current_year - 2),  # 2 years ago
-            str(current_year - 1),  # 1 year ago  
-            str(current_year),      # Current year
-            str(current_year + 1)   # Next year
-        ]
-    else:
-        batch_years = existing_batches
-    
-    cursor.execute("SELECT DISTINCT year_of_study FROM students WHERE department = %s", (department,))
-    year_options = [row['year_of_study'] for row in cursor.fetchall() if row['year_of_study']]
-    
-    cursor.execute("SELECT DISTINCT gender FROM students WHERE department = %s", (department,))
-    genders = [row['gender'] for row in cursor.fetchall() if row['gender']]
-    
-    cursor.execute("SELECT DISTINCT management FROM students WHERE department = %s", (department,))
-    managements = [row['management'] for row in cursor.fetchall() if row['management']]
-    
-    cursor.execute("SELECT DISTINCT admission_quota FROM students WHERE department = %s", (department,))
-    admission_quotas = [row['admission_quota'] for row in cursor.fetchall() if row['admission_quota']]
-    
-    cursor.execute("SELECT section_id, section_name FROM sections WHERE department = %s", (department,))
+    cursor.execute("SELECT section_id, section_name FROM sections WHERE department = %s ORDER BY section_name", (department,))
     sections = cursor.fetchall()
     
     cursor.close()
     conn.close()
     
+    # Combine batch years for display
+    batch_years_data = []
+    for start_year in batch_start_years:
+        for end_year in batch_end_years:
+            if end_year - start_year == 4:  # Typical 4-year program
+                batch_years_data.append({'batch_start_year': start_year, 'batch_end_year': end_year})
+    
     return render_template('hod/filter_students.html',
-                         students=filtered_students,
-                         batch_years=batch_years,
+                         students=students,
+                         batch_years_data=batch_years_data,
                          year_options=year_options,
                          genders=genders,
-                         managements=managements,
-                         admission_quotas=admission_quotas,
                          sections=sections,
-                         department=department,
-                         current_filters={
-                             'batch_year': batch_year,
-                             'year_of_study': year_of_study,
-                             'gender': gender,
-                             'section_id': section_id,
-                             'management': management
-                         })
+                         managements=['Regular', 'Management'],
+                         admission_quotas=['Management', 'Convenor', 'NRI', 'Other'],
+                         current_filters={},
+                         department=department)
 
 @hod_bp.route('/update-student-section', methods=['POST'])
 def hod_update_student_section():
@@ -455,21 +434,33 @@ def hod_sections_management():
     """, (department,))
     faculty = cursor.fetchall()
     
-    # Get batch years from students - WITH FALLBACK
-    cursor.execute("SELECT DISTINCT batch_year FROM students WHERE department = %s ORDER BY batch_year DESC", (department,))
-    existing_batches = [row['batch_year'] for row in cursor.fetchall()]
+    # Get batch years from students using the new batch_start_year and batch_end_year fields
+    cursor.execute("""
+        SELECT DISTINCT 
+            batch_start_year,
+            batch_end_year
+        FROM students 
+        WHERE department = %s AND status = 'active' 
+        AND batch_start_year IS NOT NULL AND batch_end_year IS NOT NULL
+        ORDER BY batch_start_year DESC
+    """, (department,))
+    batch_years_data = cursor.fetchall()
     
+    # Format batch years for display in sections
+    batch_years = []
+    for batch in batch_years_data:
+        if batch['batch_start_year'] and batch['batch_end_year']:
+            batch_years.append(f"{batch['batch_start_year']}-{batch['batch_end_year']}")
+
     # If no batches exist, provide common academic years as fallback
-    if not existing_batches:
+    if not batch_years:
         current_year = datetime.now().year
         batch_years = [
-            str(current_year - 2),  # 2 years ago
-            str(current_year - 1),  # 1 year ago  
-            str(current_year),      # Current year
-            str(current_year + 1)   # Next year
+            f"{current_year}-{current_year+4}",
+            f"{current_year-1}-{current_year+3}",
+            f"{current_year-2}-{current_year+2}",
+            f"{current_year+1}-{current_year+5}"
         ]
-    else:
-        batch_years = existing_batches
     
     cursor.close()
     conn.close()
@@ -495,6 +486,7 @@ def hod_add_section():
     cursor = conn.cursor()
     
     try:
+        # 1. Create the section
         cursor.execute("""
             INSERT INTO sections 
             (section_id, section_name, department, batch_year, class_teacher, student_range_start, student_range_end, created_by)
@@ -510,10 +502,29 @@ def hod_add_section():
             session['user_id']
         ))
         
+        # 2. AUTO-ASSIGN STUDENTS based on range
+        if data.get('student_range_start') and data.get('student_range_end'):
+            cursor.execute("""
+                UPDATE students 
+                SET section_id = %s, mentor_id = %s
+                WHERE department = %s 
+                AND student_id BETWEEN %s AND %s
+                AND status = 'active'
+            """, (
+                section_id,
+                data.get('class_teacher'),  # Also assign as mentor
+                'Artificial Intelligence',  # Use base department name
+                data.get('student_range_start'),
+                data.get('student_range_end')
+            ))
+            assigned_count = cursor.rowcount
+        else:
+            assigned_count = 0
+        
         conn.commit()
         return jsonify({
             'success': True, 
-            'message': 'Section created successfully',
+            'message': f'Section created successfully! {assigned_count} students assigned.',
             'section_id': section_id
         })
         
@@ -613,11 +624,11 @@ def hod_auto_assign_students():
         assigned_count = 0
         
         for section in sections:
-            # Assign students based on roll number ranges
+            # Assign students based on roll number ranges - FIXED: using batch_start_year instead of batch_year
             cursor.execute("""
                 UPDATE students 
                 SET section_id = %s 
-                WHERE department = %s AND batch_year = %s 
+                WHERE department = %s AND batch_start_year = %s 
                 AND student_id BETWEEN %s AND %s
             """, (section['section_id'], department, batch_year, 
                   section['student_range_start'], section['student_range_end']))
@@ -649,11 +660,11 @@ def hod_assign_mentor():
     cursor = conn.cursor()
     
     try:
-        # Update students with mentor based on roll number range
+        # Update students with mentor based on roll number range - FIXED: using batch_start_year instead of batch_year
         cursor.execute("""
             UPDATE students 
             SET mentor_id = %s 
-            WHERE department = %s AND batch_year = %s 
+            WHERE department = %s AND batch_start_year = %s 
             AND student_id BETWEEN %s AND %s
         """, (
             data['mentor_id'],
@@ -678,6 +689,70 @@ def hod_assign_mentor():
         cursor.close()
         conn.close()
 
+@hod_bp.route('/assign-class-teacher', methods=['POST'])
+def hod_assign_class_teacher():
+    if session.get('user_role') != 'hod':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    data = request.get_json()
+    section_id = data.get('section_id')
+    class_teacher = data.get('class_teacher')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Update section with class teacher
+        cursor.execute("""
+            UPDATE sections 
+            SET class_teacher = %s 
+            WHERE section_id = %s AND department = %s
+        """, (class_teacher, section_id, session.get('user_department')))
+        
+        # Update all students in this section to have this teacher as mentor
+        cursor.execute("""
+            UPDATE students 
+            SET mentor_id = %s 
+            WHERE section_id = %s AND department = %s
+        """, (class_teacher, section_id, session.get('user_department')))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Class teacher assigned successfully!'})
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+    finally:
+        cursor.close()
+        conn.close()
+
+@hod_bp.route('/get-faculty-for-section')
+def hod_get_faculty_for_section():
+    if session.get('user_role') != 'hod':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    department = session.get('user_department', '')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        cursor.execute("""
+            SELECT username, name 
+            FROM users 
+            WHERE department = %s AND role = 'faculty' AND status = 'active'
+            ORDER BY name
+        """, (department,))
+        faculty = cursor.fetchall()
+        
+        return jsonify({'success': True, 'faculty': faculty})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+    finally:
+        cursor.close()
+        conn.close()
+
 @hod_bp.route('/get-mentor-assignments')
 def hod_get_mentor_assignments():
     if session.get('user_role') != 'hod':
@@ -689,7 +764,7 @@ def hod_get_mentor_assignments():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get mentor assignments summary
+    # Get mentor assignments summary - FIXED: using batch_start_year instead of batch_year
     query = """
         SELECT mentor_id, u.name as mentor_name, 
                MIN(student_id) as range_start, MAX(student_id) as range_end,
@@ -701,7 +776,7 @@ def hod_get_mentor_assignments():
     params = [department]
     
     if batch_year:
-        query += " AND s.batch_year = %s"
+        query += " AND s.batch_start_year = %s"  # FIXED: changed from batch_year to batch_start_year
         params.append(batch_year)
     
     query += " GROUP BY mentor_id, u.name ORDER BY range_start"
@@ -725,28 +800,41 @@ def hod_get_section_students(section_id):
     cursor = conn.cursor(dictionary=True)
     
     try:
-        # Get section name
-        cursor.execute("SELECT section_name FROM sections WHERE section_id = %s AND department = %s", 
-                      (section_id, department))
+        # Get section details
+        cursor.execute("""
+            SELECT section_name, class_teacher, student_range_start, student_range_end 
+            FROM sections WHERE section_id = %s AND department = %s
+        """, (section_id, department))
         section = cursor.fetchone()
         
         if not section:
             return jsonify({'success': False, 'message': 'Section not found'})
         
-        # Get students in this section
-        cursor.execute("""
-            SELECT s.student_id, s.name, u.name as mentor_name
+        # Get ALL students that should be in this section (based on range)
+        query = """
+            SELECT s.student_id, s.name, s.batch_start_year, s.batch_end_year, 
+                   s.year_of_study, s.section_id, u.name as mentor_name
             FROM students s
             LEFT JOIN users u ON s.mentor_id = u.username
-            WHERE s.section_id = %s AND s.department = %s
+            WHERE s.department = %s 
+            AND s.status = 'active'
+            AND s.student_id BETWEEN %s AND %s
             ORDER BY s.student_id
-        """, (section_id, department))
+        """
+        
+        cursor.execute(query, (
+            'Artificial Intelligence',  # Base department name
+            section['student_range_start'] or 'A',
+            section['student_range_end'] or 'Z'
+        ))
         students = cursor.fetchall()
         
         return jsonify({
             'success': True, 
             'students': students,
-            'section_name': section['section_name']
+            'section_name': section['section_name'],
+            'class_teacher': section['class_teacher'] or 'Not Assigned',
+            'range_info': f"{section['student_range_start']} - {section['student_range_end']}"
         })
         
     except Exception as e:

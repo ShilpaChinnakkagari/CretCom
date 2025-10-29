@@ -44,42 +44,45 @@
             </div>
 
             <!-- Academic Details -->
-            <div style="grid-column: span 2; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                <h4 style="color: #34495e; margin-bottom: 15px;">🎓 Academic Information</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
-                    <div>
-                        <label>Department *:</label>
-                        <select name="department" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                            <option value="">Select Department</option>
-                            {% for dept in departments %}
-                            <option value="{{ dept.name }}">{{ dept.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div>
-                        <label>Admission Date *:</label>
-                        <input type="date" name="admission_date" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="admissionDate">
-                    </div>
-                    <div>
-                        <label>Academic Year *:</label>
-                        <select name="academic_year" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                            <option value="">Select Year</option>
-                            <option value="2024-2025">2024-2025</option>
-                            <option value="2023-2024">2023-2024</option>
-                            <option value="2022-2023">2022-2023</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Admission Quota *:</label>
-                        <select name="admission_quota" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                            <option value="">Select Quota</option>
-                            <option value="Management">Management Quota</option>
-                            <option value="Convenor">Convenor Quota</option>
-                            <option value="NRI">NRI Quota</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                </div>
+            <!-- Academic Details -->
+<div style="grid-column: span 2; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+    <h4 style="color: #34495e; margin-bottom: 15px;">🎓 Academic Information</h4>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+        <div>
+            <label>Department *:</label>
+            <select name="department" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                <option value="">Select Department</option>
+                {% for dept in departments %}
+                <option value="{{ dept.name }}">{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Admission Date *:</label>
+            <input type="date" name="admission_date" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" id="admissionDate">
+        </div>
+        <div>
+            <label>Batch Start Year *:</label>
+            <input type="number" name="batch_start_year" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" 
+                   placeholder="e.g., 2024" min="2020" max="2030" id="batchStartYear">
+        </div>
+        <div>
+            <label>Batch End Year *:</label>
+            <input type="number" name="batch_end_year" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" 
+                   placeholder="e.g., 2027" min="2024" max="2035" id="batchEndYear">
+        </div>
+        <div>
+            <label>Admission Quota *:</label>
+            <select name="admission_quota" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                <option value="">Select Quota</option>
+                <option value="Management">Management Quota</option>
+                <option value="Convenor">Convenor Quota</option>
+                <option value="NRI">NRI Quota</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+    </div>
+</div>
             </div>
 
             <!-- Personal Details -->
@@ -245,11 +248,17 @@
                         <div style="font-size: 12px; color: #7f8c8d;">{{ student.gender }} | {{ student.blood_group }}</div>
                     </td>
                     <td style="padding: 15px;">
-                        <span style="background: #e8f4fd; color: #3498db; padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: bold;">
-                            {{ student.department }}
-                        </span>
-                        <div style="font-size: 11px; color: #7f8c8d; margin-top: 5px;">{{ student.academic_year }}</div>
-                    </td>
+    <span style="background: #e8f4fd; color: #3498db; padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: bold;">
+        {{ student.department }}
+    </span>
+    <div style="font-size: 11px; color: #7f8c8d; margin-top: 5px;">
+        {% if student.batch_start_year and student.batch_end_year %}
+            {{ student.batch_start_year }}-{{ student.batch_end_year }}
+        {% else %}
+            {{ student.academic_year }}
+        {% endif %}
+    </div>
+</td>
                     <td style="padding: 15px;">
                         <div style="font-size: 13px; color: #2c3e50;">📧 {{ student.email }}</div>
                         <div style="font-size: 13px; color: #7f8c8d;">📱 {{ student.phone }}</div>
@@ -336,10 +345,20 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Add Student Form Submission
+// Add Student Form Submission
 document.getElementById('addStudentForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
     const formData = new FormData(this);
+    const batchStartYear = formData.get('batch_start_year');
+    const batchEndYear = formData.get('batch_end_year');
+    
+    // Validate batch years
+    if (parseInt(batchStartYear) >= parseInt(batchEndYear)) {
+        alert('❌ Batch start year must be less than end year');
+        return;
+    }
+    
     const studentData = {
         name: formData.get('name'),
         email: formData.get('email'),
@@ -364,7 +383,8 @@ document.getElementById('addStudentForm').addEventListener('submit', function(e)
         state: formData.get('state'),
         pincode: formData.get('pincode'),
         admission_date: formData.get('admission_date'),
-        academic_year: formData.get('academic_year'),
+        batch_start_year: batchStartYear,
+        batch_end_year: batchEndYear,
         admission_quota: formData.get('admission_quota')
     };
     
@@ -382,7 +402,7 @@ document.getElementById('addStudentForm').addEventListener('submit', function(e)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(`✅ Student Registered Successfully!\n\nStudent ID: ${data.student_id}\n\nStudent has been added to the database.`);
+            alert(`✅ Student Registered Successfully!\n\nStudent ID: ${data.student_id}\nBatch: ${batchStartYear}-${batchEndYear}\n\nStudent has been added to the database.`);
             location.reload();
         } else {
             alert('❌ Error: ' + data.message);
@@ -432,18 +452,45 @@ function viewStudentDetails(studentId) {
                     </div>
 
                     <!-- Academic Information -->
-                    <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f39c12;">
-                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📚 Academic Information</h4>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <div><strong>Department:</strong><br>${student.department}</div>
-                            <div><strong>Admission Date:</strong><br>${formatDate(student.admission_date)}</div>
-                            <div><strong>Academic Year:</strong><br>${student.academic_year}</div>
-                            <div><strong>Admission Quota:</strong><br>${student.admission_quota}</div>
-                            <div><strong>Created By:</strong><br>${student.created_by || 'System'}</div>
-                            <div><strong>Created At:</strong><br>${formatDate(student.created_at)}</div>
-                            ${student.updated_at ? `<div><strong>Last Updated:</strong><br>${formatDate(student.updated_at)}</div>` : ''}
-                        </div>
-                    </div>
+                    // In the editStudent function, replace the academic year section:
+<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+    <h4 style="color: #34495e; margin-bottom: 15px;">📚 Academic Information</h4>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+        <div>
+            <label>Department *:</label>
+            <select name="department" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Select Department</option>
+                {% for dept in departments %}
+                <option value="{{ dept.name }}" ${student.department === '{{ dept.name }}' ? 'selected' : ''}>{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Admission Date *:</label>
+            <input type="date" name="admission_date" value="${student.admission_date}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+        <div>
+            <label>Batch Start Year *:</label>
+            <input type="number" name="batch_start_year" value="${student.batch_start_year || student.academic_year ? student.academic_year.split('-')[0] : ''}" 
+                   required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" min="2020" max="2030">
+        </div>
+        <div>
+            <label>Batch End Year *:</label>
+            <input type="number" name="batch_end_year" value="${student.batch_end_year || student.academic_year ? student.academic_year.split('-')[1] : ''}" 
+                   required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" min="2024" max="2035">
+        </div>
+        <div>
+            <label>Admission Quota *:</label>
+            <select name="admission_quota" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Select Quota</option>
+                <option value="Management" ${student.admission_quota === 'Management' ? 'selected' : ''}>Management</option>
+                <option value="Convenor" ${student.admission_quota === 'Convenor' ? 'selected' : ''}>Convenor</option>
+                <option value="NRI" ${student.admission_quota === 'NRI' ? 'selected' : ''}>NRI</option>
+                <option value="Other" ${student.admission_quota === 'Other' ? 'selected' : ''}>Other</option>
+            </select>
+        </div>
+    </div>
+</div>
 
                     <!-- Family Information -->
                     <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #27ae60;">
@@ -712,6 +759,15 @@ function closeEditModal() {
 
 function saveStudentChanges() {
     const formData = new FormData(document.getElementById('editStudentForm'));
+    const batchStartYear = formData.get('batch_start_year');
+    const batchEndYear = formData.get('batch_end_year');
+    
+    // Validate batch years
+    if (parseInt(batchStartYear) >= parseInt(batchEndYear)) {
+        alert('❌ Batch start year must be less than end year');
+        return;
+    }
+    
     const studentData = {
         name: formData.get('name'),
         email: formData.get('email'),
@@ -736,7 +792,8 @@ function saveStudentChanges() {
         state: formData.get('state'),
         pincode: formData.get('pincode'),
         admission_date: formData.get('admission_date'),
-        academic_year: formData.get('academic_year'),
+        batch_start_year: batchStartYear,
+        batch_end_year: batchEndYear,
         admission_quota: formData.get('admission_quota')
     };
     
@@ -792,5 +849,13 @@ function activateStudent(studentId) {
         });
     }
 }
+
+// Add this at the END of the existing JavaScript code, before 
+document.getElementById('batchStartYear').addEventListener('change', function() {
+    const startYear = parseInt(this.value);
+    if (startYear && !isNaN(startYear)) {
+        document.getElementById('batchEndYear').value = startYear + 3;
+    }
+});
 </script>
 {% endblock %}

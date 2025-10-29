@@ -22,13 +22,28 @@
     <h3>🎯 Filter Criteria</h3>
     <form method="GET" id="filterForm">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-            <!-- Batch Year -->
+            <!-- Batch Start Year -->
             <div>
-                <label>Batch Year:</label>
-                <select name="batch_year" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                    <option value="">All Batches</option>
-                    {% for batch in batch_years %}
-                        <option value="{{ batch }}" {% if current_filters.batch_year == batch %}selected{% endif %}>{{ batch }}</option>
+                <label>Batch Start Year:</label>
+                <select name="batch_start_year" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">All Start Years</option>
+                    {% for batch in batch_years_data %}
+                        <option value="{{ batch.batch_start_year }}" {% if current_filters.batch_start_year == batch.batch_start_year|string %}selected{% endif %}>
+                            {{ batch.batch_start_year }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Batch End Year -->
+            <div>
+                <label>Batch End Year:</label>
+                <select name="batch_end_year" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">All End Years</option>
+                    {% for batch in batch_years_data %}
+                        <option value="{{ batch.batch_end_year }}" {% if current_filters.batch_end_year == batch.batch_end_year|string %}selected{% endif %}>
+                            {{ batch.batch_end_year }}
+                        </option>
                     {% endfor %}
                 </select>
             </div>
@@ -126,17 +141,22 @@
                 <tr style="border-bottom: 1px solid #ecf0f1;">
                     <td style="padding: 12px;"><strong>{{ student.student_id }}</strong></td>
                     <td style="padding: 12px;">{{ student.name }}</td>
-                    <td style="padding: 12px;">{{ student.batch_year }}</td>
+                    <td style="padding: 12px;">
+                        {% if student.batch_start_year and student.batch_end_year %}
+                            {{ student.batch_start_year }}-{{ student.batch_end_year }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
                     <td style="padding: 12px;">
                         <span style="background: 
-                            {% if student.calculated_year == '1st Year' %}#27ae60
-                            {% elif student.calculated_year == '2nd Year' %}#3498db
-                            {% elif student.calculated_year == '3rd Year' %}#f39c12
-                            {% elif student.calculated_year == '4th Year' %}#e74c3c
-                            {% elif student.calculated_year == 'Graduated' %}#9b59b6
+                            {% if student.year_of_study == '1st Year' %}#27ae60
+                            {% elif student.year_of_study == '2nd Year' %}#3498db
+                            {% elif student.year_of_study == '3rd Year' %}#f39c12
+                            {% elif student.year_of_study == '4th Year' %}#e74c3c
                             {% else %}#95a5a6{% endif %}; 
                             color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
-                            {{ student.calculated_year }}
+                            {{ student.year_of_study or '1st Year' }}
                         </span>
                     </td>
                     <td style="padding: 12px;">{{ student.gender or 'N/A' }}</td>
@@ -151,7 +171,7 @@
                         </button>
                         <button onclick="editStudentSection('{{ student.student_id }}')" 
                                 style="padding: 6px 12px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
-                            ✏️ Edit
+                            ✏️ Edit Section
                         </button>
                     </td>
                 </tr>
@@ -192,28 +212,43 @@ let currentEditStudentId = null;
 function editStudentSection(studentId) {
     currentEditStudentId = studentId;
     
-    const formHTML = `
-        <form id="editSectionForm">
-            <div style="margin-bottom: 15px;">
-                <label>Section:</label>
-                <select name="section_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="">No Section</option>
-                    {% for section in sections %}
-                        <option value="{{ section.section_id }}">{{ section.section_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label>Mentor:</label>
-                <select name="mentor_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="">No Mentor</option>
-                </select>
-            </div>
-        </form>
-    `;
-    
-    document.getElementById('editSectionFormContainer').innerHTML = formHTML;
-    document.getElementById('editSectionModal').style.display = 'flex';
+    // Get available faculty for mentor selection
+    fetch('/hod/get-faculty-for-section')
+    .then(response => response.json())
+    .then(data => {
+        let facultyOptions = '<option value="">No Mentor</option>';
+        if (data.success) {
+            data.faculty.forEach(faculty => {
+                facultyOptions += `<option value="${faculty.username}">${faculty.name}</option>`;
+            });
+        }
+        
+        const formHTML = `
+            <form id="editSectionForm">
+                <div style="margin-bottom: 15px;">
+                    <label>Section:</label>
+                    <select name="section_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">No Section</option>
+                        {% for section in sections %}
+                            <option value="{{ section.section_id }}">{{ section.section_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Mentor (Class Teacher):</label>
+                    <select name="mentor_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        ${facultyOptions}
+                    </select>
+                </div>
+            </form>
+        `;
+        
+        document.getElementById('editSectionFormContainer').innerHTML = formHTML;
+        document.getElementById('editSectionModal').style.display = 'flex';
+    })
+    .catch(error => {
+        alert('❌ Error loading faculty data: ' + error);
+    });
 }
 
 function closeEditSectionModal() {
@@ -250,7 +285,8 @@ function saveSectionChanges() {
 }
 
 function viewStudentDetails(studentId) {
-    alert('View student details for: ' + studentId);
+    // Redirect to student details page or show modal
+    window.location.href = '/hod/student-details/' + studentId;
 }
 </script>
 {% endblock %}

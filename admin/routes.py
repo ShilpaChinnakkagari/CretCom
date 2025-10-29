@@ -180,7 +180,10 @@ def admin_add_student_record():
         next_number = count_result['count'] + 1
         student_id = f"{department_code}{current_year}{str(next_number).zfill(3)}"
         
-        # Insert student into students table with all fields
+        # Calculate academic year from batch years
+        academic_year = f"{student_data['batch_start_year']}-{student_data['batch_end_year']}"
+        
+        # Insert student into students table with all fields including batch years
         cursor.execute(
             """INSERT INTO students 
             (student_id, name, email, department, phone, date_of_birth, gender, 
@@ -188,9 +191,9 @@ def admin_add_student_record():
              mother_name, mother_phone, mother_occupation, guardian_name, 
              guardian_phone, guardian_relation, guardian_address, address,
              city, state, pincode, admission_date, academic_year, admission_quota,
-             created_by, status) 
+             batch_start_year, batch_end_year, year_of_study, created_by, status) 
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active')""",
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active')""",
             (student_id, student_data['name'], student_data['email'], 
              student_data['department'], student_data['phone'], 
              student_data['date_of_birth'], student_data['gender'],
@@ -203,8 +206,9 @@ def admin_add_student_record():
              student_data['guardian_relation'], student_data['guardian_address'],
              student_data['address'], student_data['city'], student_data['state'],
              student_data['pincode'], student_data['admission_date'],
-             student_data['academic_year'], student_data['admission_quota'],
-             session['user_id'])
+             academic_year, student_data['admission_quota'],
+             student_data['batch_start_year'], student_data['batch_end_year'],
+             '1st Year', session['user_id'])
         )
         
         conn.commit()
@@ -233,6 +237,9 @@ def admin_update_student_record(student_id):
     cursor = conn.cursor()
     
     try:
+        # Calculate academic year from batch years
+        academic_year = f"{student_data['batch_start_year']}-{student_data['batch_end_year']}"
+        
         cursor.execute(
             """UPDATE students 
             SET name=%s, email=%s, department=%s, phone=%s, date_of_birth=%s, 
@@ -240,7 +247,8 @@ def admin_update_student_record(student_id):
                 father_occupation=%s, mother_name=%s, mother_phone=%s, mother_occupation=%s,
                 guardian_name=%s, guardian_phone=%s, guardian_relation=%s, guardian_address=%s,
                 address=%s, city=%s, state=%s, pincode=%s, admission_date=%s, 
-                academic_year=%s, admission_quota=%s, updated_at=NOW()
+                academic_year=%s, admission_quota=%s, batch_start_year=%s, batch_end_year=%s,
+                updated_at=NOW()
             WHERE student_id=%s""",
             (student_data['name'], student_data['email'], student_data['department'],
              student_data['phone'], student_data['date_of_birth'], student_data['gender'],
@@ -250,7 +258,8 @@ def admin_update_student_record(student_id):
              student_data['guardian_name'], student_data['guardian_phone'], student_data['guardian_relation'],
              student_data['guardian_address'], student_data['address'], student_data['city'], 
              student_data['state'], student_data['pincode'], student_data['admission_date'],
-             student_data['academic_year'], student_data['admission_quota'], student_id)
+             academic_year, student_data['admission_quota'], student_data['batch_start_year'],
+             student_data['batch_end_year'], student_id)
         )
         
         conn.commit()
@@ -263,7 +272,6 @@ def admin_update_student_record(student_id):
         cursor.close()
         conn.close()
         return jsonify({'success': False, 'message': str(e)})
-
 @admin_bp.route('/delete-student-record/<student_id>', methods=['POST'])
 def admin_delete_student_record(student_id):
     if session.get('user_role') not in ['administration_admin', 'college_admin']:

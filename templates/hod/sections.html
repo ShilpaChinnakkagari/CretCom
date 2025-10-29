@@ -415,6 +415,48 @@ function displayMentorAssignments(assignments) {
 }
 
 // ========== SECTION OPERATIONS ==========
+
+function editStudentSection(studentId) {
+    currentEditStudentId = studentId;
+    
+    // Get available faculty for mentor selection
+    fetch('/hod/get-faculty-for-section')
+    .then(response => response.json())
+    .then(data => {
+        let facultyOptions = '<option value="">No Mentor</option>';
+        if (data.success) {
+            data.faculty.forEach(faculty => {
+                facultyOptions += `<option value="${faculty.username}">${faculty.name}</option>`;
+            });
+        }
+        
+        const formHTML = `
+            <form id="editSectionForm">
+                <div style="margin-bottom: 15px;">
+                    <label>Section:</label>
+                    <select name="section_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">No Section</option>
+                        {% for section in sections %}
+                            <option value="{{ section.section_id }}">{{ section.section_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Mentor (Class Teacher):</label>
+                    <select name="mentor_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        ${facultyOptions}
+                    </select>
+                </div>
+            </form>
+        `;
+        
+        document.getElementById('editSectionFormContainer').innerHTML = formHTML;
+        document.getElementById('editSectionModal').style.display = 'flex';
+    })
+    .catch(error => {
+        alert('❌ Error loading faculty data: ' + error);
+    });
+}
 let currentEditSectionId = null;
 
 function editSection(sectionId) {
