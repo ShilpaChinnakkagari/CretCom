@@ -46,11 +46,11 @@
             </div>
             <div>
                 <label>Student Range Start:</label>
-                <input type="text" name="student_range_start" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., AR31001">
+                <input type="text" name="student_range_start" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., ART25001">
             </div>
             <div>
                 <label>Student Range End:</label>
-                <input type="text" name="student_range_end" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., AR31008">
+                <input type="text" name="student_range_end" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., ART25008">
             </div>
         </div>
         <button type="submit" style="margin-top: 15px; padding: 12px 30px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
@@ -106,17 +106,25 @@
             </div>
             <div>
                 <label>Student Range Start *:</label>
-                <input type="text" name="student_range_start" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., AR31001">
+                <input type="text" name="student_range_start" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., ART25001">
             </div>
             <div>
                 <label>Student Range End *:</label>
-                <input type="text" name="student_range_end" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., AR31004">
+                <input type="text" name="student_range_end" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., ART25004">
             </div>
         </div>
         <button type="submit" style="margin-top: 15px; padding: 12px 30px; background: #9b59b6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
             👥 Assign Mentor
         </button>
     </form>
+</div>
+
+<!-- MENTOR ASSIGNMENTS MANAGEMENT -->
+<div style="background: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <h3 style="color: #2c3e50; border-bottom: 2px solid #9b59b6; padding-bottom: 10px;">👥 Manage Mentor Assignments</h3>
+    <div id="mentorAssignmentsManagement">
+        <!-- Mentor assignments with edit/delete will be loaded here -->
+    </div>
 </div>
 
 <!-- EXISTING SECTIONS -->
@@ -214,6 +222,24 @@
     </div>
 </div>
 
+<!-- Edit Mentor Assignment Modal -->
+<div id="editMentorModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+        <h3>✏️ Edit Mentor Assignment</h3>
+        <div id="editMentorFormContainer">
+            <!-- Edit form will be loaded here -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button onclick="closeEditMentorModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">
+                Cancel
+            </button>
+            <button onclick="saveMentorChanges()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                💾 Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Section Students Modal -->
 <div id="sectionStudentsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
     <div style="background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
@@ -299,7 +325,8 @@ document.getElementById('assignMentorForm').addEventListener('submit', function(
         if (data.success) {
             alert('✅ ' + data.message);
             this.reset();
-            loadMentorAssignments(); // Refresh mentor assignments
+            loadMentorAssignments(); // Refresh summary view
+            loadMentorAssignmentsManagement(); // Refresh management view
         } else {
             alert('❌ Error: ' + data.message);
         }
@@ -414,49 +441,282 @@ function displayMentorAssignments(assignments) {
     container.innerHTML = html;
 }
 
-// ========== SECTION OPERATIONS ==========
+// ========== MENTOR ASSIGNMENTS MANAGEMENT ==========
+let currentEditMentorAssignmentId = null;
 
-function editStudentSection(studentId) {
-    currentEditStudentId = studentId;
-    
-    // Get available faculty for mentor selection
-    fetch('/hod/get-faculty-for-section')
+function loadMentorAssignmentsManagement() {
+    fetch('/hod/get-all-mentor-assignments')
     .then(response => response.json())
     .then(data => {
-        let facultyOptions = '<option value="">No Mentor</option>';
         if (data.success) {
-            data.faculty.forEach(faculty => {
-                facultyOptions += `<option value="${faculty.username}">${faculty.name}</option>`;
-            });
+            displayMentorAssignmentsManagement(data.assignments);
+        } else {
+            document.getElementById('mentorAssignmentsManagement').innerHTML = 
+                '<p style="text-align: center; color: #7f8c8d; padding: 20px;">Error loading mentor assignments</p>';
         }
-        
-        const formHTML = `
-            <form id="editSectionForm">
-                <div style="margin-bottom: 15px;">
-                    <label>Section:</label>
-                    <select name="section_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <option value="">No Section</option>
-                        {% for section in sections %}
-                            <option value="{{ section.section_id }}">{{ section.section_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <label>Mentor (Class Teacher):</label>
-                    <select name="mentor_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        ${facultyOptions}
-                    </select>
-                </div>
-            </form>
-        `;
-        
-        document.getElementById('editSectionFormContainer').innerHTML = formHTML;
-        document.getElementById('editSectionModal').style.display = 'flex';
     })
     .catch(error => {
-        alert('❌ Error loading faculty data: ' + error);
+        document.getElementById('mentorAssignmentsManagement').innerHTML = 
+            '<p style="text-align: center; color: #7f8c8d; padding: 20px;">Error loading mentor assignments</p>';
     });
 }
+
+function displayMentorAssignmentsManagement(assignments) {
+    const container = document.getElementById('mentorAssignmentsManagement');
+    
+    if (assignments.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+                <div style="font-size: 48px; margin-bottom: 20px;">👥</div>
+                <h4 style="color: #95a5a6;">No Mentor Assignments</h4>
+                <p>Assign mentors using the form above.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #34495e; color: white;">
+                        <th style="padding: 12px; text-align: left;">Mentor</th>
+                        <th style="padding: 12px; text-align: left;">Batch Year</th>
+                        <th style="padding: 12px; text-align: left;">Student Range</th>
+                        <th style="padding: 12px; text-align: center;">Student Count</th>
+                        <th style="padding: 12px; text-align: center;">Created</th>
+                        <th style="padding: 12px; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    assignments.forEach(assignment => {
+        const createdDate = new Date(assignment.created_at).toLocaleDateString();
+        html += `
+            <tr style="border-bottom: 1px solid #ecf0f1;">
+                <td style="padding: 12px;">
+                    <strong>${assignment.mentor_name}</strong>
+                </td>
+                <td style="padding: 12px;">
+                    <span style="background: #e8f4fd; color: #3498db; padding: 4px 8px; border-radius: 4px;">
+                        ${assignment.batch_year}
+                    </span>
+                </td>
+                <td style="padding: 12px;">
+                    <span style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-family: monospace;">
+                        ${assignment.student_range_start} - ${assignment.student_range_end}
+                    </span>
+                </td>
+                <td style="padding: 12px; text-align: center;">
+                    <span style="background: #27ae60; color: white; padding: 6px 12px; border-radius: 15px; font-weight: bold;">
+                        ${assignment.student_count} students
+                    </span>
+                </td>
+                <td style="padding: 12px; text-align: center;">
+                    <small style="color: #7f8c8d;">${createdDate}</small>
+                </td>
+                <td style="padding: 12px; text-align: center;">
+                    <button onclick="editMentorAssignment(${assignment.id})" 
+                            style="padding: 6px 12px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                        ✏️ Edit
+                    </button>
+                    <button onclick="deleteMentorAssignment(${assignment.id})" 
+                            style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                        🗑️ Delete
+                    </button>
+                    <button onclick="viewMentorStudents('${assignment.mentor_id}')" 
+                            style="padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 2px;">
+                        👁️ View
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+function editMentorAssignment(assignmentId) {
+    currentEditMentorAssignmentId = assignmentId;
+    
+    fetch('/hod/get-mentor-assignment/' + assignmentId)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const assignment = data.assignment;
+            
+            let facultyOptions = '';
+            {% for teacher in faculty %}
+                facultyOptions += `<option value="{{ teacher.username }}" ${assignment.mentor_id === '{{ teacher.username }}' ? 'selected' : ''}>{{ teacher.name }}</option>`;
+            {% endfor %}
+            
+            let batchYearOptions = '';
+            {% for batch in batch_years %}
+                batchYearOptions += `<option value="{{ batch }}" ${assignment.batch_year === '{{ batch }}' ? 'selected' : ''}>{{ batch }}</option>`;
+            {% endfor %}
+            
+            const editForm = `
+                <form id="editMentorForm">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label>Mentor *:</label>
+                            <select name="mentor_id" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                                <option value="">Select Mentor</option>
+                                ${facultyOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label>Batch Year *:</label>
+                            <select name="batch_year" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                                <option value="">Select Batch Year</option>
+                                ${batchYearOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label>Student Range Start *:</label>
+                            <input type="text" name="student_range_start" value="${assignment.student_range_start}" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., ART25001">
+                        </div>
+                        <div>
+                            <label>Student Range End *:</label>
+                            <input type="text" name="student_range_end" value="${assignment.student_range_end}" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., ART25004">
+                        </div>
+                    </div>
+                </form>
+            `;
+            
+            document.getElementById('editMentorFormContainer').innerHTML = editForm;
+            document.getElementById('editMentorModal').style.display = 'flex';
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+}
+
+function saveMentorChanges() {
+    const formData = new FormData(document.getElementById('editMentorForm'));
+    const mentorData = {
+        mentor_id: formData.get('mentor_id'),
+        batch_year: formData.get('batch_year'),
+        student_range_start: formData.get('student_range_start'),
+        student_range_end: formData.get('student_range_end')
+    };
+    
+    fetch('/hod/update-mentor-assignment/' + currentEditMentorAssignmentId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(mentorData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Mentor assignment updated successfully!');
+            closeEditMentorModal();
+            loadMentorAssignmentsManagement(); // Refresh the management view
+            loadMentorAssignments(); // Refresh the summary view
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+}
+
+function deleteMentorAssignment(assignmentId) {
+    if (confirm('Are you sure you want to delete this mentor assignment? Students will have their mentor removed.')) {
+        fetch('/hod/delete-mentor-assignment/' + assignmentId, {
+            method: 'DELETE'
+        })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Mentor assignment deleted successfully!');
+            loadMentorAssignmentsManagement(); // Refresh the management view
+            loadMentorAssignments(); // Refresh the summary view
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+    }
+}
+
+function closeEditMentorModal() {
+    document.getElementById('editMentorModal').style.display = 'none';
+    currentEditMentorAssignmentId = null;
+}
+
+// ========== VIEW MENTOR'S STUDENTS ==========
+function viewMentorStudents(mentorId) {
+    fetch('/hod/get-mentor-students/' + mentorId)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayMentorStudents(data.students, data.mentor_name);
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Network error: ' + error);
+    });
+}
+
+function displayMentorStudents(students, mentorName) {
+    let html = `<h4>${mentorName}'s Students (${students.length})</h4>`;
+    
+    if (students.length === 0) {
+        html += '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No students assigned to this mentor.</p>';
+    } else {
+        html += `
+            <div style="overflow-x: auto; max-height: 400px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #34495e; color: white;">
+                            <th style="padding: 10px; text-align: left;">Student ID</th>
+                            <th style="padding: 10px; text-align: left;">Name</th>
+                            <th style="padding: 10px; text-align: left;">Batch</th>
+                            <th style="padding: 10px; text-align: left;">Section</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        students.forEach(student => {
+            html += `
+                <tr style="border-bottom: 1px solid #ecf0f1;">
+                    <td style="padding: 10px;">${student.student_id}</td>
+                    <td style="padding: 10px;">${student.name}</td>
+                    <td style="padding: 10px;">${student.batch_start_year}-${student.batch_end_year}</td>
+                    <td style="padding: 10px;">${student.section_name || 'Not Assigned'}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    document.getElementById('sectionStudentsContainer').innerHTML = html;
+    document.getElementById('sectionStudentsModal').style.display = 'flex';
+}
+
+// ========== SECTION OPERATIONS ==========
 let currentEditSectionId = null;
 
 function editSection(sectionId) {
@@ -494,11 +754,11 @@ function editSection(sectionId) {
                     </div>
                     <div>
                         <label>Student Range Start:</label>
-                        <input type="text" name="student_range_start" value="${section.student_range_start || ''}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., AR31001">
+                        <input type="text" name="student_range_start" value="${section.student_range_start || ''}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., ART25001">
                     </div>
                     <div>
                         <label>Student Range End:</label>
-                        <input type="text" name="student_range_end" value="${section.student_range_end || ''}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., AR31008">
+                        <input type="text" name="student_range_end" value="${section.student_range_end || ''}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="e.g., ART25008">
                     </div>
                 </div>
             </form>
@@ -625,8 +885,8 @@ function closeSectionStudentsModal() {
 
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', function() {
-    // Load initial mentor assignments
-    loadMentorAssignments();
+    loadMentorAssignments(); // Load summary view
+    loadMentorAssignmentsManagement(); // Load management view
 });
 </script>
 {% endblock %}

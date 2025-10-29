@@ -547,6 +547,7 @@ def hod_update_section(section_id):
     cursor = conn.cursor()
     
     try:
+        # 1. Update section details
         cursor.execute("""
             UPDATE sections 
             SET section_name = %s, batch_year = %s, class_teacher = %s,
@@ -561,8 +562,39 @@ def hod_update_section(section_id):
             section_id, department
         ))
         
+        # 2. RE-ASSIGN STUDENTS based on new range and batch year
+        assigned_count = 0
+        if data.get('student_range_start') and data.get('student_range_end'):
+            # First, remove all students from this section
+            cursor.execute("""
+                UPDATE students 
+                SET section_id = NULL 
+                WHERE section_id = %s AND department = %s
+            """, (section_id, 'Artificial Intelligence'))
+            
+            # Then assign students based on NEW range and batch year
+            batch_start_year = data['batch_year'].split('-')[0]
+            cursor.execute("""
+                UPDATE students 
+                SET section_id = %s 
+                WHERE department = %s 
+                AND batch_start_year = %s  # CRITICAL: Match batch year
+                AND student_id BETWEEN %s AND %s
+                AND status = 'active'
+            """, (
+                section_id,
+                'Artificial Intelligence',
+                batch_start_year,  # Only assign students from this batch
+                data.get('student_range_start'),
+                data.get('student_range_end')
+            ))
+            assigned_count = cursor.rowcount
+        
         conn.commit()
-        return jsonify({'success': True, 'message': 'Section updated successfully'})
+        return jsonify({
+            'success': True, 
+            'message': f'Section updated successfully! {assigned_count} students re-assigned.'
+        })
         
     except Exception as e:
         conn.rollback()
@@ -660,26 +692,59 @@ def hod_assign_mentor():
     cursor = conn.cursor()
     
     try:
-        # Update students with mentor based on roll number range - FIXED: using batch_start_year instead of batch_year
+        # Extract batch start year
+        batch_start_year = data['batch_year'].split('-')[0]
+        
+        # First, count how many students will be affected
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM students 
+            WHERE department = %s 
+            AND batch_start_year = %s
+            AND student_id BETWEEN %s AND %s
+            AND status = 'active'
+        """, (
+            'Artificial Intelligence',
+            batch_start_year,
+            data['student_range_start'],
+            data['student_range_end']
+        ))
+        student_count = cursor.fetchone()[0]
+        
+        # Update students with mentor
         cursor.execute("""
             UPDATE students 
             SET mentor_id = %s 
-            WHERE department = %s AND batch_start_year = %s 
+            WHERE department = %s 
+            AND batch_start_year = %s
             AND student_id BETWEEN %s AND %s
+            AND status = 'active'
         """, (
             data['mentor_id'],
-            department,
-            data['batch_year'],
+            'Artificial Intelligence',
+            batch_start_year,
             data['student_range_start'],
             data['student_range_end']
         ))
         
-        assigned_count = cursor.rowcount
-        conn.commit()
+        # Save to mentor_assignments table with correct student count
+        cursor.execute("""
+            INSERT INTO mentor_assignments 
+            (mentor_id, batch_year, student_range_start, student_range_end, student_count, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (
+            data['mentor_id'],
+            data['batch_year'],
+            data['student_range_start'],
+            data['student_range_end'],
+            student_count,  # Use the actual count, not affected rows
+            session['user_id']
+        ))
         
+        conn.commit()
         return jsonify({
             'success': True, 
-            'message': f'Mentor assigned to {assigned_count} students'
+            'message': f'Mentor assigned to {student_count} students successfully!'
         })
         
     except Exception as e:
@@ -753,41 +818,29 @@ def hod_get_faculty_for_section():
         cursor.close()
         conn.close()
 
-@hod_bp.route('/get-mentor-assignments')
-def hod_get_mentor_assignments():
+@hod_bp.route('/get-mentor-assignment/<int:assignment_id>')
+def hod_get_mentor_assignment(assignment_id):
     if session.get('user_role') != 'hod':
         return jsonify({'success': False, 'message': 'Unauthorized'})
-    
-    department = session.get('user_department', '')
-    batch_year = request.args.get('batch_year', '')
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get mentor assignments summary - FIXED: using batch_start_year instead of batch_year
-    query = """
-        SELECT mentor_id, u.name as mentor_name, 
-               MIN(student_id) as range_start, MAX(student_id) as range_end,
-               COUNT(*) as student_count
-        FROM students s
-        LEFT JOIN users u ON s.mentor_id = u.username
-        WHERE s.department = %s AND s.mentor_id IS NOT NULL
-    """
-    params = [department]
-    
-    if batch_year:
-        query += " AND s.batch_start_year = %s"  # FIXED: changed from batch_year to batch_start_year
-        params.append(batch_year)
-    
-    query += " GROUP BY mentor_id, u.name ORDER BY range_start"
-    
-    cursor.execute(query, params)
-    assignments = cursor.fetchall()
-    
-    cursor.close()
-    conn.close()
-    
-    return jsonify({'success': True, 'assignments': assignments})
+    try:
+        cursor.execute("""
+            SELECT * FROM mentor_assignments WHERE id = %s
+        """, (assignment_id,))
+        
+        assignment = cursor.fetchone()
+        return jsonify({'success': True, 'assignment': assignment})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+    finally:
+        cursor.close()
+        conn.close()
+
+
 
 @hod_bp.route('/get-section-students/<section_id>')
 def hod_get_section_students(section_id):
@@ -800,9 +853,9 @@ def hod_get_section_students(section_id):
     cursor = conn.cursor(dictionary=True)
     
     try:
-        # Get section details
+        # Get section details including batch_year
         cursor.execute("""
-            SELECT section_name, class_teacher, student_range_start, student_range_end 
+            SELECT section_name, class_teacher, student_range_start, student_range_end, batch_year
             FROM sections WHERE section_id = %s AND department = %s
         """, (section_id, department))
         section = cursor.fetchone()
@@ -810,23 +863,21 @@ def hod_get_section_students(section_id):
         if not section:
             return jsonify({'success': False, 'message': 'Section not found'})
         
-        # Get ALL students that should be in this section (based on range)
+        # Extract batch start year from section's batch_year
+        section_batch_start = int(section['batch_year'].split('-')[0]) if section['batch_year'] else None
+        
+        # Get students that are ACTUALLY ASSIGNED to this section
         query = """
-            SELECT s.student_id, s.name, s.batch_start_year, s.batch_end_year, 
-                   s.year_of_study, s.section_id, u.name as mentor_name
+            SELECT s.student_id, s.name, s.batch_start_year, s.batch_end_year,
+                   s.section_id, u.name as mentor_name
             FROM students s
             LEFT JOIN users u ON s.mentor_id = u.username
-            WHERE s.department = %s 
+            WHERE s.section_id = %s  # Only students assigned to this section
             AND s.status = 'active'
-            AND s.student_id BETWEEN %s AND %s
             ORDER BY s.student_id
         """
         
-        cursor.execute(query, (
-            'Artificial Intelligence',  # Base department name
-            section['student_range_start'] or 'A',
-            section['student_range_end'] or 'Z'
-        ))
+        cursor.execute(query, (section_id,))
         students = cursor.fetchall()
         
         return jsonify({
@@ -834,7 +885,7 @@ def hod_get_section_students(section_id):
             'students': students,
             'section_name': section['section_name'],
             'class_teacher': section['class_teacher'] or 'Not Assigned',
-            'range_info': f"{section['student_range_start']} - {section['student_range_end']}"
+            'range_info': f"{section['student_range_start']} - {section['student_range_end']} (Batch: {section['batch_year']})"
         })
         
     except Exception as e:
@@ -842,6 +893,45 @@ def hod_get_section_students(section_id):
     finally:
         cursor.close()
         conn.close()
+
+@hod_bp.route('/get-mentor-students/<mentor_id>')
+def hod_get_mentor_students(mentor_id):
+    if session.get('user_role') != 'hod':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    department = session.get('user_department', '')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Get mentor name
+        cursor.execute("SELECT name FROM users WHERE username = %s", (mentor_id,))
+        mentor = cursor.fetchone()
+        
+        # Get students assigned to this mentor
+        cursor.execute("""
+            SELECT s.student_id, s.name, s.batch_start_year, s.batch_end_year,
+                   sec.section_name
+            FROM students s
+            LEFT JOIN sections sec ON s.section_id = sec.section_id
+            WHERE s.mentor_id = %s AND s.department = %s AND s.status = 'active'
+            ORDER BY s.student_id
+        """, (mentor_id, 'Artificial Intelligence'))
+        students = cursor.fetchall()
+        
+        return jsonify({
+            'success': True, 
+            'students': students,
+            'mentor_name': mentor['name'] if mentor else 'Unknown Mentor'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+    finally:
+        cursor.close()
+        conn.close()
+
 
 # ========== AO MANAGEMENT ROUTES ==========
 @hod_bp.route('/ao-management')
@@ -932,6 +1022,139 @@ def hod_add_ao():
         cursor.close()
         conn.close()
 
+@hod_bp.route('/get-all-mentor-assignments')
+def hod_get_all_mentor_assignments():
+    if session.get('user_role') != 'hod':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    department = session.get('user_department', '')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Get all mentor assignments from the mentor_assignments table
+        cursor.execute("""
+            SELECT ma.id, ma.mentor_id, u.name as mentor_name, ma.batch_year,
+                   ma.student_range_start, ma.student_range_end, ma.student_count,
+                   ma.created_at
+            FROM mentor_assignments ma
+            JOIN users u ON ma.mentor_id = u.username
+            WHERE u.department = %s
+            ORDER BY ma.created_at DESC
+        """, (department,))
+        
+        assignments = cursor.fetchall()
+        return jsonify({'success': True, 'assignments': assignments})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+    finally:
+        cursor.close()
+        conn.close()
+
+        
+@hod_bp.route('/update-mentor-assignment/<int:assignment_id>', methods=['POST'])
+def hod_update_mentor_assignment(assignment_id):
+    if session.get('user_role') != 'hod':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    data = request.get_json()
+    department = session.get('user_department', '')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Update mentor assignment
+        cursor.execute("""
+            UPDATE mentor_assignments 
+            SET mentor_id = %s, batch_year = %s,
+                student_range_start = %s, student_range_end = %s
+            WHERE id = %s
+        """, (
+            data['mentor_id'],
+            data['batch_year'],
+            data['student_range_start'],
+            data['student_range_end'],
+            assignment_id
+        ))
+        
+        # Update students with new mentor
+        batch_start_year = data['batch_year'].split('-')[0]
+        cursor.execute("""
+            UPDATE students 
+            SET mentor_id = %s 
+            WHERE department = %s 
+            AND batch_start_year = %s
+            AND student_id BETWEEN %s AND %s
+            AND status = 'active'
+        """, (
+            data['mentor_id'],
+            'Artificial Intelligence',
+            batch_start_year,
+            data['student_range_start'],
+            data['student_range_end']
+        ))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Mentor assignment updated successfully!'})
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+    finally:
+        cursor.close()
+        conn.close()
+
+@hod_bp.route('/delete-mentor-assignment/<int:assignment_id>', methods=['DELETE'])
+def hod_delete_mentor_assignment(assignment_id):
+    if session.get('user_role') != 'hod':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Get assignment details before deleting
+        cursor.execute("""
+            SELECT mentor_id, batch_year, student_range_start, student_range_end 
+            FROM mentor_assignments WHERE id = %s
+        """, (assignment_id,))
+        assignment = cursor.fetchone()
+        
+        if assignment:
+            # Remove mentor from students
+            batch_start_year = assignment[1].split('-')[0]
+            cursor.execute("""
+                UPDATE students 
+                SET mentor_id = NULL 
+                WHERE department = %s 
+                AND batch_start_year = %s
+                AND student_id BETWEEN %s AND %s
+                AND mentor_id = %s
+            """, (
+                'Artificial Intelligence',
+                batch_start_year,
+                assignment[2],  # student_range_start
+                assignment[3],  # student_range_end  
+                assignment[0]   # mentor_id
+            ))
+        
+        # Delete the assignment
+        cursor.execute("DELETE FROM mentor_assignments WHERE id = %s", (assignment_id,))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Mentor assignment deleted successfully!'})
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+    finally:
+        cursor.close()
+        conn.close()
+
+        
 @hod_bp.route('/get-ao-details/<ao_id>')
 def hod_get_ao_details(ao_id):
     if session.get('user_role') != 'hod':
