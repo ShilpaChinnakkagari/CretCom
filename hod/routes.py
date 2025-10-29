@@ -692,42 +692,50 @@ def hod_assign_mentor():
     cursor = conn.cursor()
     
     try:
-        # Extract batch start year
-        batch_start_year = data['batch_year'].split('-')[0]
+        # Extract batch start year from the selected batch (e.g., "2024-2028" -> 2024)
+        selected_batch_start = int(data['batch_year'].split('-')[0])
         
-        # First, count how many students will be affected
+        print(f"DEBUG: Assigning mentor for batch {data['batch_year']} (start year: {selected_batch_start})")
+        print(f"DEBUG: Student range: {data['student_range_start']} to {data['student_range_end']}")
+        
+        # First, count how many students match BOTH range AND batch year
         cursor.execute("""
             SELECT COUNT(*) 
             FROM students 
             WHERE department = %s 
-            AND batch_start_year = %s
+            AND batch_start_year = %s  # MUST match selected batch
             AND student_id BETWEEN %s AND %s
             AND status = 'active'
         """, (
             'Artificial Intelligence',
-            batch_start_year,
+            selected_batch_start,  # This is CRITICAL
             data['student_range_start'],
             data['student_range_end']
         ))
         student_count = cursor.fetchone()[0]
         
-        # Update students with mentor
+        print(f"DEBUG: Found {student_count} students in batch {selected_batch_start}")
+        
+        # Update students with mentor - ONLY if they match the batch year
         cursor.execute("""
             UPDATE students 
             SET mentor_id = %s 
             WHERE department = %s 
-            AND batch_start_year = %s
+            AND batch_start_year = %s  # MUST match selected batch
             AND student_id BETWEEN %s AND %s
             AND status = 'active'
         """, (
             data['mentor_id'],
             'Artificial Intelligence',
-            batch_start_year,
+            selected_batch_start,  # This is CRITICAL
             data['student_range_start'],
             data['student_range_end']
         ))
         
-        # Save to mentor_assignments table with correct student count
+        updated_count = cursor.rowcount
+        print(f"DEBUG: Actually updated {updated_count} students")
+        
+        # Save to mentor_assignments table
         cursor.execute("""
             INSERT INTO mentor_assignments 
             (mentor_id, batch_year, student_range_start, student_range_end, student_count, created_by)
@@ -737,18 +745,20 @@ def hod_assign_mentor():
             data['batch_year'],
             data['student_range_start'],
             data['student_range_end'],
-            student_count,  # Use the actual count, not affected rows
+            student_count,  # Use the count from the SELECT query
             session['user_id']
         ))
         
         conn.commit()
+        
         return jsonify({
             'success': True, 
-            'message': f'Mentor assigned to {student_count} students successfully!'
+            'message': f'Mentor assigned to {student_count} students from batch {data["batch_year"]} successfully!'
         })
         
     except Exception as e:
         conn.rollback()
+        print(f"ERROR in assign-mentor: {str(e)}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
     finally:
         cursor.close()
@@ -909,14 +919,14 @@ def hod_get_mentor_students(mentor_id):
         cursor.execute("SELECT name FROM users WHERE username = %s", (mentor_id,))
         mentor = cursor.fetchone()
         
-        # Get students assigned to this mentor
+        # Get students assigned to this mentor - show ALL regardless of batch
         cursor.execute("""
             SELECT s.student_id, s.name, s.batch_start_year, s.batch_end_year,
                    sec.section_name
             FROM students s
             LEFT JOIN sections sec ON s.section_id = sec.section_id
             WHERE s.mentor_id = %s AND s.department = %s AND s.status = 'active'
-            ORDER BY s.student_id
+            ORDER BY s.batch_start_year, s.student_id
         """, (mentor_id, 'Artificial Intelligence'))
         students = cursor.fetchall()
         
